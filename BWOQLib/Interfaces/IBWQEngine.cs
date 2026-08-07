@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Collections;
 
-namespace System.Linq.Dynamic.BitWise
+namespace Rochas.BWOQ
 {
     public interface IBWQEngine<T> where T : class
     {

@@ -3,13 +3,13 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <RootNamespace>System.Linq.Dynamic.BitWise</RootNamespace>
-    <AssemblyName>System.Linq.Dynamic.BitWise</AssemblyName>
+    <RootNamespace>Rochas.BWOQ</RootNamespace>
+    <AssemblyName>Rochas.BWOQ</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Renato Rocha</Authors>
     <Copyright>Renato Rocha</Copyright>
-    <Description>BitWise Object Query - compact query composition using binary attribute combinations</Description>
-    <PackageTags>linq dynamic query bitwise elastic search</PackageTags>
+    <Description>Rochas BWOQ - BitWise Object Query for compact query composition</Description>
+    <PackageTags>linq dynamic query bitwise elastic search rochas bwoq</PackageTags>
     <Version>1.4.0</Version>
     <PackageReleaseNotes>Modernized to netstandard2.1, System.Linq.Dynamic.Core, System.Text.Json; added short method aliases (Q, W, G, O, OD)</PackageReleaseNotes>
   </PropertyGroup>

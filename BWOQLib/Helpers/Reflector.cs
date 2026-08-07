@@ -1,11 +1,12 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace System.Linq.Dynamic.BitWise.Helpers
+namespace Rochas.BWOQ.Helpers
 {
     public static class Reflector
     {
@@ -179,10 +180,10 @@ namespace System.Linq.Dynamic.BitWise.Helpers
         #region Helper Methods
 
         /// <summary>
-        /// Obtem a relação de instâncias das classes filho de um objeto
+        /// Obtem a rela��o de inst�ncias das classes filho de um objeto
         /// </summary>
         /// <author>Renato Rocha, 2014</author>
-        /// <param name="source">Instância do objeto</param>
+        /// <param name="source">Inst�ncia do objeto</param>
         /// <returns>object</returns>
         internal static object[] getObjectChilds(object destination)
         {
@@ -203,10 +204,10 @@ namespace System.Linq.Dynamic.BitWise.Helpers
         #region Public Methods
 
         /// <summary>
-        /// Define os valores das propriedades em uma nova instância do objeto origem
+        /// Define os valores das propriedades em uma nova inst�ncia do objeto origem
         /// </summary>
         /// <author>Renato Rocha, 2014</author>
-        /// <param name="source">Instância do objeto</param>
+        /// <param name="source">Inst�ncia do objeto</param>
         public static T CloneObjectData(object source)
         {
             T destination = Activator.CreateInstance<T>();

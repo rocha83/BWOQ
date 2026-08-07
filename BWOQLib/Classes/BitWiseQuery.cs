@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -8,9 +8,9 @@ using System.Reflection;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Text.Json;
-using System.Linq.Dynamic.BitWise.Helpers;
+using Rochas.BWOQ.Helpers;
 
-namespace System.Linq.Dynamic.BitWise
+namespace Rochas.BWOQ
 {
     public class BitWiseQuery<T> : IBitWiseQuery where T : class
     {

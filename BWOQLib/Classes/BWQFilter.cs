@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace System.Linq.Dynamic.BitWise
+namespace Rochas.BWOQ
 {
     public class BWQFilter<T> : IBWQEngine<T> where T : class
     {
