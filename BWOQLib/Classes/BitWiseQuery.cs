@@ -6,9 +6,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
-using System.Linq.Dynamic;
-using System.Xml.Serialization;
-using Newtonsoft.Json;
+using System.Linq.Dynamic.Core;
+using System.Text.Json;
 using System.Linq.Dynamic.BitWise.Helpers;
 
 namespace System.Linq.Dynamic.BitWise
@@ -404,26 +403,20 @@ namespace System.Linq.Dynamic.BitWise
 
         private string serializeResult(IQueryable dynRes, EnumSerialDataType returnDataType)
         {
-            if ((returnDataType == EnumSerialDataType.XML)
-                || (returnDataType == EnumSerialDataType.CSV))
+            if (returnDataType == EnumSerialDataType.CSV)
             {
                 List<T> result = new List<T>();
-                var xmlSerial = new XmlSerializer(typeof(List<T>));
-                var memStream = new MemoryStream();
 
                 foreach (var res in dynRes)
                     result.Add(cloneObjectData(res, false));
 
-                if (returnDataType == EnumSerialDataType.XML)
-                {
-                    xmlSerial.Serialize(memStream, result);
-                    return Encoding.ASCII.GetString(memStream.GetBuffer());
-                }
-                else
-                    return Serializer.SerializeCSV(result);
+                return Serializer.SerializeCSV(result);
             }
             else
-                return JsonConvert.SerializeObject(dynRes);
+            {
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                return JsonSerializer.Serialize(dynRes, options);
+            }
         }
 
         private IQueryable<T> CompositeWhere(string extExpr)
@@ -458,7 +451,7 @@ namespace System.Linq.Dynamic.BitWise
                                         
                     checkInvalidCriterAttribs(dynLINQParams, extExpr);
 
-                    result = DynamicQueryable.Where<T>(objInstance.OfType<T>(), dynLINQry, dynLINQParams);
+                    result = objInstance.OfType<T>().Where(dynLINQry, dynLINQParams);
                 }
                 else
                     new InvalidCriterCombinAttribute();
@@ -478,7 +471,7 @@ namespace System.Linq.Dynamic.BitWise
             if (!valPredicExpr(bwqExpr))
                 throw new InvalidQueryExpression();
 
-            return DynamicQueryable.Select(objInstance, getPredicateExpr(bwqExpr, true));
+            return objInstance.Select(getPredicateExpr(bwqExpr, true));
         }
 
         public BWQFilter<T> Query(string bwqExpr)
@@ -589,9 +582,9 @@ namespace System.Linq.Dynamic.BitWise
             return Query(bwqExpr, standAlone);
         }
 
-        public BWQFilter<T> Q(string bwqExpr)
+        public IQueryable Q(string bwqExpr)
         {
-            return Query(bwqExpr);
+            return Query(bwqExpr, true);
         }
 
         public string Q(string extExpr, EnumSerialDataType dataType)
