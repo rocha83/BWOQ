@@ -9,14 +9,18 @@
     <Authors>Renato Rocha</Authors>
     <Copyright>Renato Rocha</Copyright>
     <Description>Rochas BWOQ - BitWise Object Query for compact query composition</Description>
-    <PackageTags>linq dynamic query bitwise elastic search rochas bwoq</PackageTags>
+    <PackageTags>linq dynamic query bitwise elastic search rochas bwoq</PackageTags>    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Version>1.4.0</Version>
-    <PackageReleaseNotes>Modernized to netstandard2.1, System.Linq.Dynamic.Core, System.Text.Json; added short method aliases (Q, W, G, O, OD)</PackageReleaseNotes>
+    <PackageReleaseNotes>Modernized to netstandard2.1, System.Linq.Dynamic.Core, System.Text.Json; added short method aliases (Q, W, G, O, OD); bug fixes on chain builder propagation, instance-based state, like/contains default comparison for strings, value extraction with conjunction token</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.3" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

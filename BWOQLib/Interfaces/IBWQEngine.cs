@@ -8,10 +8,10 @@ namespace Rochas.BWOQ
 {
     public interface IBWQEngine<T> where T : class
     {
-        IQueryable Where(string extExp);
+        IQueryable<T> Where(string extExp);
 
-        IQueryable OrderBy(string extExp);
+        IQueryable<T> OrderBy(string extExp);
 
-        IQueryable GroupBy(string _byExp, string grpExp);
+        IQueryable<T> GroupBy(string _byExp, string grpExp);
     }
 }

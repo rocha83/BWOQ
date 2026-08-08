@@ -17,8 +17,8 @@ namespace Rochas.BWOQ
         #region Declarations
 
         private IQueryable<T> objInstance { get; set; }
-        public static IQueryable<T> searchResult { get; set; }
-        public static BWQFilter<T> preFilter { get; set; }
+        private IQueryable<T> searchResult { get; set; }
+        private BWQFilter<T> preFilter { get; set; }
         private string predicExpr { get; set; }
         
         #endregion
@@ -68,10 +68,18 @@ namespace Rochas.BWOQ
         {
             if ((_objProp == null) || (_objProp.Length == 0))
                 if (!(obj is PropertyInfo))
-                    _objProp = obj.GetType().GetProperties()
-                                            .Where(prp => !(prp.PropertyType.Name.Equals("ICollection`1"))).ToArray();
+                {
+                    var rootType = obj.GetType();
+                    _objProp = rootType.GetProperties()
+                                        .Where(prp => !prp.PropertyType.Name.Equals("ICollection`1")
+                                                      && !(prp.PropertyType.IsClass
+                                                           && prp.PropertyType != typeof(string)
+                                                           && prp.PropertyType.Module.Name.Equals(rootType.Module.Name)))
+                                        .ToArray();
+                }
                 else
-                    _objProp = ((PropertyInfo)obj).PropertyType.GetProperties();
+                    _objProp = ((PropertyInfo)obj).PropertyType.GetProperties()
+                                                    .Where(prp => !prp.PropertyType.Name.Equals("ICollection`1")).ToArray();
 
             return _objProp;
         }
@@ -113,25 +121,30 @@ namespace Rochas.BWOQ
 
         private object[] setObjValCombin(string[] propNames, object obj, string criteria)
         {
-            criteria = Regex.Replace(criteria, @"(=|\+|-|=\+|=\-)$", string.Empty);
+            criteria = Regex.Replace(criteria, @"[=&+\-]+$", string.Empty);
 
             object[] result; decimal numTest; DateTime dateTest;
             bool numArg = decimal.TryParse(criteria, out numTest);
             bool dateArg = DateTime.TryParse(criteria, out dateTest);
-            bool nullArg = criteria.ToLower().Equals("null");
+            bool nullArg = criteria.Equals("null", StringComparison.OrdinalIgnoreCase);
+            bool boolArg = bool.TryParse(criteria, out bool boolTest);
 
             result = listPropValues(obj, propNames);
 
             for (var cont = 0; cont < propNames.Length; cont++)
             {
-                if (numArg) result[cont] = Convert.ChangeType(numTest.ToString(), result[cont].GetType());
-                else if (!numArg && !nullArg && (result[cont].GetType() == typeof(string)))
-                    result[cont] = criteria.ToString();
-                else if (result[cont].GetType() == typeof(DateTime))
-                    result[cont] = dateArg ? dateTest as object
-                                           : DateTime.MinValue;
-                else if (nullArg)
+                var propType = result[cont].GetType();
+
+                if (nullArg)
                     result[cont] = null;
+                else if (propType == typeof(bool))
+                    result[cont] = boolArg ? (object)boolTest : (numArg && (numTest != 0));
+                else if (propType == typeof(DateTime))
+                    result[cont] = dateArg ? (object)dateTest : DateTime.MinValue;
+                else if (numArg)
+                    result[cont] = Convert.ChangeType(numTest, propType);
+                else if (propType == typeof(string))
+                    result[cont] = criteria.ToString();
             }
             
             return result;
@@ -327,13 +340,22 @@ namespace Rochas.BWOQ
             else if (filterExpr.EndsWith("=-"))
                 result += string.Concat(" <= @", idx);
             else if (filterExpr.EndsWith("="))
-                result += string.Concat(" = @", idx);
+                result += string.Concat(" == @", idx);
             else if (filterExpr.EndsWith("+"))
                 result += string.Concat(" > @", idx);
             else if (filterExpr.EndsWith("-"))
                 result += string.Concat(" < @", idx);
             else
-                result += string.Concat(".ToLower().Contains(@", idx, ") ");
+            {
+                var critValue = getDynExprCriter(filterExpr);
+                critValue = Regex.Replace(critValue, @"[=&+\-]+$", string.Empty);
+
+                if (decimal.TryParse(critValue, out _) || bool.TryParse(critValue, out _)
+                    || DateTime.TryParse(critValue, out _) || critValue.Equals("null", StringComparison.OrdinalIgnoreCase))
+                    result += string.Concat(" == @", idx);
+                else
+                    result += string.Concat(".ToLower().Contains(@", idx, ")");
+            }
 
             return string.Join(" ", result);
         }
@@ -498,9 +520,7 @@ namespace Rochas.BWOQ
         {
             searchResult = CompositeWhere(extExpr);
 
-            var result = new BWQFilter<T>(searchResult, predicExpr);
-
-            return result;
+            return new BWQFilter<T>(searchResult, predicExpr);
         }
 
         public string Where(string extExpr, EnumSerialDataType dataType)
@@ -516,11 +536,7 @@ namespace Rochas.BWOQ
 
             if (searchResult == null) searchResult = objInstance;
 
-            if (!string.IsNullOrEmpty(predicExpr))
-                result = searchResult.OrderBy(getPredicateExpr(extExpr, false))
-                                        .Select(getPredicateExpr());
-            else
-                result = searchResult.OrderBy(getPredicateExpr(extExpr, false));
+            result = searchResult.OrderBy(getPredicateExpr(extExpr, false));
 
             return result;
         }
@@ -538,8 +554,7 @@ namespace Rochas.BWOQ
 
             if (searchResult == null) searchResult = objInstance;
 
-            result = searchResult.OrderBy(string.Concat(getPredicateExpr(extExpr, false), " DESC"))
-                                    .Select(getPredicateExpr());
+            result = searchResult.OrderBy(string.Concat(getPredicateExpr(extExpr, false), " DESC"));
 
             return result;
         }
@@ -577,14 +592,14 @@ namespace Rochas.BWOQ
 
         #region Public Methods Aliases
 
+        public BWQFilter<T> Q(string bwqExpr)
+        {
+            return Query(bwqExpr);
+        }
+
         public IQueryable Q(string bwqExpr, bool standAlone)
         {
             return Query(bwqExpr, standAlone);
-        }
-
-        public IQueryable Q(string bwqExpr)
-        {
-            return Query(bwqExpr, true);
         }
 
         public string Q(string extExpr, EnumSerialDataType dataType)

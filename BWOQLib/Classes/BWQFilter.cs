@@ -2,75 +2,73 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 
 namespace Rochas.BWOQ
 {
-    public class BWQFilter<T> : IBWQEngine<T> where T : class
+    public class BWQFilter<T> : IBWQEngine<T>, IQueryable<T>, IEnumerable<T> where T : class
     {
-        #region Declarations
-
-        private static IQueryable<T> objInstance;
-        private static string bwqExpression;
-        private static BitWiseQuery<T> qryEngine;
-
-        #endregion
-
-        #region Constructors
+        private IQueryable<T> _source;
+        private IQueryable<T> _lastResult;
+        private string bwqExpression;
+        private BitWiseQuery<T> qryEngine;
 
         public BWQFilter(IQueryable<T> obj, string extExp)
         {
-            objInstance = obj;
+            _source = obj;
             bwqExpression = extExp;
-
-            qryEngine = new BitWiseQuery<T>(ref objInstance, ref bwqExpression, this);
+            qryEngine = new BitWiseQuery<T>(ref _source, ref bwqExpression, this);
+            _lastResult = _source;
         }
 
-        #endregion
-        
-        public IQueryable Where(string extExpr)
+        public IQueryable<T> Where(string extExpr)
         {
-            return qryEngine.Where(extExpr);
+            _lastResult = qryEngine.Where(extExpr) as IQueryable<T>;
+            return _lastResult;
         }
 
         public BWQFilter<T> Where(string extExpr, bool hasSufix)
         {
-            return qryEngine.Where(extExpr, hasSufix);
+            var result = qryEngine.Where(extExpr, hasSufix);
+
+            _source = result._source;
+            bwqExpression = result.bwqExpression;
+            qryEngine = result.qryEngine;
+            _lastResult = result._lastResult;
+
+            return this;
         }
 
-        public string Where(string extExpr, EnumSerialDataType dataType)
+        public IQueryable<T> OrderBy(string extExpr)
         {
-            return qryEngine.Where(extExpr, dataType);
+            _lastResult = qryEngine.OrderBy(extExpr) as IQueryable<T>;
+            return _lastResult;
         }
 
-        public IQueryable OrderBy(string extExpr)
+        public IQueryable<T> OrderByDescending(string extExpr)
         {
-            return qryEngine.OrderBy(extExpr);
+            _lastResult = qryEngine.OrderByDescending(extExpr) as IQueryable<T>;
+            return _lastResult;
         }
 
-        public string OrderBy(string extExpr, EnumSerialDataType dataType)
+        public IQueryable<T> GroupBy(string grpExpr, string extExpr)
         {
-            return qryEngine.OrderBy(extExpr, dataType);
+            _lastResult = qryEngine.GroupBy(grpExpr, extExpr) as IQueryable<T>;
+            return _lastResult;
         }
 
-        public IQueryable OrderByDescending(string extExpr)
-        {
-            return qryEngine.OrderByDescending(extExpr);
-        }
+        // Builder pattern
+        public BWQFilter<T> W(string extExpr) { Where(extExpr, true); return this; }
+        public BWQFilter<T> O(string extExpr) { OrderBy(extExpr); return this; }
+        public BWQFilter<T> OD(string extExpr) { OrderByDescending(extExpr); return this; }
+        public IQueryable G(string grpExpr, string byExpr) { return qryEngine.GroupBy(grpExpr, byExpr); }
 
-        public string OrderByDescending(string extExpr, EnumSerialDataType dataType)
-        {
-            return qryEngine.OrderByDescending(extExpr, dataType);
-        }
-
-        public IQueryable GroupBy(string grpExpr, string extExpr)
-        {
-            return qryEngine.GroupBy(grpExpr, extExpr);
-        }
-
-        public string GroupBy(string grpExpr, string extExpr, EnumSerialDataType dataType)
-        {
-            return qryEngine.GroupBy(grpExpr, extExpr, dataType);
-        }
+        // IQueryable<T> implementation
+        public Type ElementType => (_lastResult ?? _source).ElementType;
+        public Expression Expression => (_lastResult ?? _source).Expression;
+        public IQueryProvider Provider => (_lastResult ?? _source).Provider;
+        public IEnumerator<T> GetEnumerator() => (_lastResult ?? _source).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }
