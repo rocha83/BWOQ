@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BWOQLib\Rochas.BWOQ.csproj" />
+    <ProjectReference Include="..\Rochas.BWOQ\Rochas.BWOQ.csproj" />
   </ItemGroup>
 
 </Project>
