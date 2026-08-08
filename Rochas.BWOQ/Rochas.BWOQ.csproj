@@ -11,8 +11,8 @@
     <Description>Rochas BWOQ - BitWise Object Query for compact query composition</Description>
     <PackageTags>linq dynamic query bitwise elastic search rochas bwoq</PackageTags>    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>GNUv2_License.txt</PackageLicenseFile>
-    <Version>1.4.0</Version>
-    <PackageReleaseNotes>Modernized to netstandard2.1, System.Linq.Dynamic.Core, System.Text.Json; added short method aliases (Q, W, G, O, OD); bug fixes on chain builder propagation, instance-based state, like/contains default comparison for strings, value extraction with conjunction token</PackageReleaseNotes>
+    <Version>1.5.0</Version>
+    <PackageReleaseNotes>Modernized to netstandard2.1, System.Linq.Dynamic.Core, System.Text.Json; added short method aliases (Q, W, G, O, OD); bug fixes on chain builder propagation, instance-based state, like/contains default comparison for strings, value extraction with conjunction token; hierarchy read BASE TO DERIVED (base fields keep lower masks/indices since most consulted) and BigInteger masks (no 31-field ceiling) via BitWiseTable helper</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

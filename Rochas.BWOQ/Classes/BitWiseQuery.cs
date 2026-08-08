@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
+using System.Numerics;
 using System.Linq.Dynamic.Core;
 using System.Text.Json;
 using Rochas.BWOQ.Helpers;
@@ -67,39 +68,33 @@ namespace Rochas.BWOQ
         private PropertyInfo[] listObjProp(object obj)
         {
             if ((_objProp == null) || (_objProp.Length == 0))
-                if (!(obj is PropertyInfo))
-                {
-                    var rootType = obj.GetType();
-                    _objProp = rootType.GetProperties()
-                                        .Where(prp => !prp.PropertyType.Name.Equals("ICollection`1")
-                                                      && !(prp.PropertyType.IsClass
-                                                           && prp.PropertyType != typeof(string)
-                                                           && prp.PropertyType.Module.Name.Equals(rootType.Module.Name)))
-                                        .ToArray();
-                }
-                else
-                    _objProp = ((PropertyInfo)obj).PropertyType.GetProperties()
-                                                    .Where(prp => !prp.PropertyType.Name.Equals("ICollection`1")).ToArray();
+                _objProp = obj is PropertyInfo propInfo
+                    ? BitWiseTable.GetOrderedProps(propInfo.PropertyType)
+                    : BitWiseTable.GetOrderedProps(obj.GetType());
 
             return _objProp;
         }
 
         private IList getPropBinTable(object obj)
         {
-            int idx = 0;
+            var props = BitWiseTable.GetOrderedProps(obj is PropertyInfo propInfo
+                ? propInfo.PropertyType
+                : obj.GetType());
+            var result = new List<KeyValuePair<int, BigInteger>>(props.Length);
 
-            return (from prp in listObjProp(obj)
-                    select new KeyValuePair<int, int>
-                               (idx++, (int)Math.Pow(2,idx-1))).ToList();
+            for (var i = 0; i < props.Length; i++)
+                result.Add(new KeyValuePair<int, BigInteger>(i, BigInteger.One << i));
+
+            return result;
         }
 
-        private string[] getObjPropCombin(IList binTable, int binValue, object obj)
+        private string[] getObjPropCombin(IList binTable, BigInteger binValue, object obj)
         {
             int idx = 0;
-            var cnvBinTable = (List<KeyValuePair<int, int>>)binTable;
+            var cnvBinTable = (List<KeyValuePair<int, BigInteger>>)binTable;
 
             return (from prp in listObjProp(obj)
-                    where (cnvBinTable[idx++].Value | binValue) == binValue
+                    where (cnvBinTable[idx++].Value & binValue) == cnvBinTable[idx - 1].Value
                     select prp.Name).ToArray();
         }
 
@@ -215,7 +210,7 @@ namespace Rochas.BWOQ
             return result;
         }
 
-        private string[] getPredicProps(object obj, int combinDec) {
+        private string[] getPredicProps(object obj, BigInteger combinDec) {
             
             _objProp = null;
             return getObjPropCombin(getPropBinTable(obj), combinDec, obj);
@@ -226,15 +221,15 @@ namespace Rochas.BWOQ
             return extExpr.Substring(0, extExpr.IndexOf("::"));
         }
 
-        private int getPredicCombinDec(string extExpr)
+        private BigInteger getPredicCombinDec(string extExpr)
         {
-            int result;
+            BigInteger result;
 
             extExpr = Regex.Replace(extExpr, @"(\*|\+|\~|\^|\-)$", string.Empty);
 
-            if (!int.TryParse(extExpr, out result))
+            if (!BigInteger.TryParse(extExpr, out result))
                 if (valPredicExpr(extExpr))
-                    result = int.Parse(extExpr.Substring(0, extExpr.IndexOf('>')));
+                    result = BigInteger.Parse(extExpr.Substring(0, extExpr.IndexOf('>')));
 
             return result;
         }
@@ -248,7 +243,7 @@ namespace Rochas.BWOQ
                 var cnvExpr = cexp.Split(':');
                 cnvExpr[1] = Regex.Replace(cnvExpr[1], @"(\*|\+|~|\^|\-)$", string.Empty);
                 var childObj = getChildObj(int.Parse(cnvExpr[0]));
-                var itemPredic = getPredicProps(childObj, int.Parse(cnvExpr[1]))
+                var itemPredic = getPredicProps(childObj, BigInteger.Parse(cnvExpr[1]))
                                  .Select(pdp => string.Concat(((PropertyInfo)childObj).PropertyType.Name, ".", pdp))
                                  .ToArray();
 

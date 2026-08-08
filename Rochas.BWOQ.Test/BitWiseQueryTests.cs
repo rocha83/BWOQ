@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using Rochas.BWOQ;
+using Rochas.BWOQ.Helpers;
 
 namespace Rochas.BWOQ.Test
 {
@@ -295,6 +297,154 @@ namespace Rochas.BWOQ.Test
             Assert.NotNull(result);
             Assert.Single(result);
             Assert.Equal("Ana", result[0].Name);
+        }
+
+        #endregion
+
+        #region Hierarchy + BigInteger tests
+
+        public abstract class BaseRow
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = "";
+            public bool IsActive { get; set; } = true;
+        }
+
+        public class DerivedRow : BaseRow
+        {
+            public DateTime CreatedAt { get; set; }
+            public decimal CreditLimit { get; set; }
+            public string City { get; set; } = "";
+            public string State { get; set; } = "";
+            public int Age { get; set; }
+            public string Document { get; set; } = "";
+        }
+
+        // 40 propriedades reais: index > 31 exige BigInteger (int estouraria).
+        public class WideRow
+        {
+            public string C01 { get; set; } = "";
+            public string C02 { get; set; } = "";
+            public string C03 { get; set; } = "";
+            public string C04 { get; set; } = "";
+            public string C05 { get; set; } = "";
+            public string C06 { get; set; } = "";
+            public string C07 { get; set; } = "";
+            public string C08 { get; set; } = "";
+            public string C09 { get; set; } = "";
+            public string C10 { get; set; } = "";
+            public string C11 { get; set; } = "";
+            public string C12 { get; set; } = "";
+            public string C13 { get; set; } = "";
+            public string C14 { get; set; } = "";
+            public string C15 { get; set; } = "";
+            public string C16 { get; set; } = "";
+            public string C17 { get; set; } = "";
+            public string C18 { get; set; } = "";
+            public string C19 { get; set; } = "";
+            public string C20 { get; set; } = "";
+            public string C21 { get; set; } = "";
+            public string C22 { get; set; } = "";
+            public string C23 { get; set; } = "";
+            public string C24 { get; set; } = "";
+            public string C25 { get; set; } = "";
+            public string C26 { get; set; } = "";
+            public string C27 { get; set; } = "";
+            public string C28 { get; set; } = "";
+            public string C29 { get; set; } = "";
+            public string C30 { get; set; } = "";
+            public string C31 { get; set; } = "";
+            public string C32 { get; set; } = "";
+            public string C33 { get; set; } = "";
+            public string C34 { get; set; } = "";
+            public string C35 { get; set; } = "";
+            public string C36 { get; set; } = "";
+            public string C37 { get; set; } = "";
+            public string C38 { get; set; } = "";
+            public string C39 { get; set; } = "";
+            public decimal Value { get; set; }
+        }
+
+        [Fact]
+        public void Table_BaseProps_GetLowestIndices()
+        {
+            var table = BitWiseTable.GetOrderedProps(typeof(DerivedRow));
+
+            var nameIdx = Array.FindIndex(table, p => p.Name == "Name");
+            var idIdx = Array.FindIndex(table, p => p.Name == "Id");
+            var creditIdx = Array.FindIndex(table, p => p.Name == "CreditLimit");
+            var stateIdx = Array.FindIndex(table, p => p.Name == "State");
+
+            Assert.True(idIdx < creditIdx, $"Id (idx {idIdx}) must come before CreditLimit (idx {creditIdx})");
+            Assert.True(nameIdx < creditIdx, $"Name (idx {nameIdx}) must come before CreditLimit (idx {creditIdx})");
+            Assert.True(idIdx < stateIdx, $"Id (idx {idIdx}) must come before State (idx {stateIdx})");
+        }
+
+        [Fact]
+        public void Table_Masks_AreBigInteger_WithoutIntOverflow()
+        {
+            var props = BitWiseTable.GetOrderedProps(typeof(WideRow));
+            var valueIdx = Array.FindIndex(props, p => p.Name == "Value");
+
+            Assert.Equal(39, valueIdx);
+            var mask = BigInteger.One << valueIdx;
+            Assert.True(mask > int.MaxValue, "Máscara deve ultrapassar o limite do int sem overflow.");
+        }
+
+        [Fact]
+        public void Q_Selects_PropertyBeyondBit31()
+        {
+            var bwq = new BitWiseQuery<WideRow>(_wideData().AsQueryable());
+            var mask = GetMaskOf(typeof(WideRow), "Value");
+            var result = ((IEnumerable)bwq.Q(mask.ToString(), true)).Cast<object>().ToList();
+
+            Assert.Equal(3, result.Count);
+            Assert.All(result, r => Assert.NotNull(r.GetType().GetProperty("Value")));
+        }
+
+        [Fact]
+        public void W_Filters_OnPropertyBeyondBit31()
+        {
+            var bwq = new BitWiseQuery<WideRow>(_wideData().AsQueryable());
+            var mask = GetMaskOf(typeof(WideRow), "Value");
+            var result = ((IQueryable)bwq.Q("3").W($"{mask}::8500=")).Cast<WideRow>().ToList();
+
+            Assert.NotNull(result);
+            Assert.Single(result);
+            Assert.Equal(8500m, result[0].Value);
+        }
+
+        [Fact]
+        public void W_Filters_OnBaseProperty_UsingLowMask()
+        {
+            var bwq = new BitWiseQuery<DerivedRow>(_derivedData().AsQueryable());
+            var mask = GetMaskOf(typeof(DerivedRow), "IsActive");
+            var result = ((IQueryable)bwq.Q("3").W($"{mask}::1&=")).Cast<DerivedRow>().ToList();
+
+            Assert.NotNull(result);
+            Assert.All(result, r => Assert.True(r.IsActive));
+        }
+
+        private static List<DerivedRow> _derivedData() => new()
+        {
+            new DerivedRow { Id = 1, Name = "Carlos", IsActive = true,  Age = 35, CreditLimit = 8500, State = "SP" },
+            new DerivedRow { Id = 2, Name = "Laura",   IsActive = false, Age = 28, CreditLimit = 3500, State = "RJ" },
+            new DerivedRow { Id = 3, Name = "Joao",    IsActive = true,  Age = 42, CreditLimit = 5000, State = "MG" },
+        };
+
+        private static List<WideRow> _wideData() => new()
+        {
+            new WideRow { Value = 8500 },
+            new WideRow { Value = 3500 },
+            new WideRow { Value = 5000 },
+        };
+
+        private static BigInteger GetMaskOf(Type type, string propertyName)
+        {
+            var props = BitWiseTable.GetOrderedProps(type);
+            var index = Array.FindIndex(props, p => p.Name == propertyName);
+            Assert.True(index >= 0, $"Propriedade {propertyName} não encontrada.");
+            return BigInteger.One << index;
         }
 
         #endregion
