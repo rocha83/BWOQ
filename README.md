@@ -19,6 +19,7 @@ dotnet add package Rochas.BWOQ
 ```text
 BitWiseQuery<T>   --> Motor de consulta (métodos longos + aliases Q, W, O, OD, G)
 BWQFilter<T>      --> Builder encadeável, implementa IQueryable<T> / IEnumerable<T>
+BwoqQuery<T>      --> Façade (v1.6.0) com 3 modos de execução: LINQ / ANSI SQL / DapperRepository
 ```
 
 ## 📌 Exemplo de Entidade e Tabela Binária
@@ -291,10 +292,115 @@ var csv  = bwq.Where("32::1&=", EnumSerialDataType.CSV);
 
 ## 🧪 Testes
 
-O pacote `Rochas.BWOQ.Test` cobre (18 testes aprovados / 0 falhas):
+O pacote `Rochas.BWOQ.Test` cobre (55 testes aprovados / 0 falhas):
 
 - Projeção de colunas (`Q(..., true)`) e navegação em agregados;
 - Filtros: `=`, `&` (AND), like, `+`, `-`, `=+`, `=-`, inclusive em atributos de agregado;
 - Ordenação `O` / `OD`;
 - Builder encadeado `Q().W().O()/OD()`;
-- Agrupamento `G` e agregações `Count`, `Sum`, `Max`.
+- Agrupamento `G` e agregações `Count`, `Sum`, `Max`;
+- Façade `BwoqQuery<T>`: modo LINQ (`Apply`), SQL ANSI (`ToSql`) e GenericRepository (`ToRepositoryQuery`).
+
+---
+
+## 🚀 Façade `BwoqQuery<T>` — 3 Modos de Execução (v1.6.0)
+
+O `BwoqQuery<T>` é o façade de integração com **Rochas.DapperRepository.Specification**
+(sem dependência da ORM): a mesma expressão BWOQ é traduzida para **LINQ**, **SQL ANSI
+multi-dialeto** ou um **comando do GenericRepository** (via reflexão).
+
+```csharp
+using Rochas.BWOQ.Data;
+using Rochas.DapperRepository.Specification.Enums;
+```
+
+Composição imutável por fluência — todos os métodos validam a sintaxe no momento da chamada:
+
+```csharp
+var query = BwoqQuery<Person>.Create()
+    .Select("6")                    // Name (2) + City (4)
+    .Where("32::1&=")               // Active = true
+    .Where("16::35=+")              // Age >= 35
+    .OrderBy("2");                  // Name ASC
+```
+
+### Modo 1 — LINQ (fonte do caller)
+
+`Apply(IQueryable<T>)` devolve um `IQueryable` em que `Select` vira projeção dinâmica e
+`Where`/`OrderBy`/`GroupBy` filtram e agregam a fonte:
+
+```csharp
+var result = query.Apply(personList.AsQueryable()).ToList();
+```
+
+> Quando `Select` é omitido, o façade projeta todas as colunas e devolve entidades tipadas
+> (`IQueryable<Person>`), permitindo `ToList()`/`foreach` diretos.
+
+### Modo 2 — SQL ANSI (somente string, nunca executa)
+
+`ToSql(DatabaseEngine)` devolve a string do comando para o dialeto escolhido
+(`MySQL`, `SQLServer`, `PostgreSQL`, `SQLite`):
+
+```csharp
+var sql = query.ToSql(DatabaseEngine.SQLServer);
+// SELECT Name, City FROM Person WHERE (Active = 1) AND (Age >= 35) ORDER BY Name ASC
+
+var sqlPostgres = BwoqQuery<SqlPeople>.Create()
+    .Select("1")
+    .ToSql(DatabaseEngine.PostgreSQL);
+// SELECT "person_id" FROM "app"."people"
+```
+
+Identificadores são delimitados com aspas no PostgreSQL (incluindo `Schema.Table`).
+`[Table]`/`[Column]` do `System.ComponentModel.DataAnnotations` são respeitados.
+
+### Modo 3 — GenericRepository (reflexão em entidade-filtro)
+
+`ToRepositoryQuery()` materializa a expressão como um comando do repositório sem executar:
+entidade-filtro tipada `T` por reflexão, `Search` para colunas `[Filterable]`,
+`[RangeFilter]` para limites `>=`/`<=`, `loadComposition` para navegação e builders de
+ordenação/agrupamento com `DataAggregationType`:
+
+```csharp
+public class PersonFilter
+{
+    public decimal Id { get; set; }
+
+    [Filterable]
+    public string Name { get; set; }
+
+    [RangeFilter(LinkedRangeProperty = "AgeUntil")]
+    public decimal AgeFrom { get; set; }
+
+    public decimal AgeUntil { get; set; }
+    public string State { get; set; }
+}
+
+var repoQuery = BwoqQuery<PersonFilter>.Create()
+    .Where("2::silva")        // Search: Name [Filterable]
+    .Where("4::35=+")         // RangeFilter: AgeFrom = 35 (>=)
+    .Where("8::65=-")         // RangeFilter: AgeUntil = 65 (<=)
+    .OrderBy("64")
+    .ToRepositoryQuery();
+
+var builder = repoQuery.Build(repository);            // IQueryBuilder<T>
+var paged   = repoQuery.Build(repository, 1, 50);     // IQueryPaginatedBuilder<T>
+var sync    = repoQuery.BuildSync(repository);        // IQuerySyncBuilder<T>
+```
+
+> A execução permanece com o caller (await/ToList). Sem `[Filterable]`/`[RangeFilter]`,
+> o façade lança `BwoqCapabilityException` orientando a usar SQL ou LINQ.
+
+### Limitações por design (BwoqCapabilityException)
+
+| Situação                              | Modo SQL / Repositório                    | Alternativa                     |
+| ------------------------------------- | ----------------------------------------- | ------------------------------- |
+| Navegação (`>ordinal:máscara`) em projeção/filtro | JOIN exige metadata privada da ORM | LINQ (`Apply`) ou `loadComposition` via `[RelatedEntity]` |
+| Comparadores estritos `>`/`<` da ORM pública | ORM pública só suporta `>=`/`<=` via `[RangeFilter]` | SQL (`ToSql`) ou LINQ (`Apply`) |
+| Igualdade exata `=` em string não-chave | ORM busca por semelhança LIKE | SQL (`ToSql`) ou LINQ (`Apply`) |
+| Critérios múltiplos em disjunção `Or`  | ORM combina filtros com `And` | use `&` (AND) ou SQL/LINQ |
+| Booleano `false` / valor default (0, empty) | são ignorados como filtro vazio pela ORM | SQL (`ToSql`) ou LINQ (`Apply`) |
+
+O token `>` permanece **exclusivamente navegação em composição** (nunca comparação);
+comparadores são `+` (maior), `-` (menor), `=+` (maior/igual), `=-` (menor/igual) e `=`
+(igualdade).
