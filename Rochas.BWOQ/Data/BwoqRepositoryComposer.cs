@@ -74,30 +74,22 @@ namespace Rochas.BWOQ.Data
 
         private static void ApplyCriteria<T>(Type entityType, List<BwoqCriteria> criteriaList, BwoqRepositoryQuery<T> result) where T : class
         {
-            // Múltiplos critérios em disjunção (OR) não são combináveis pela ORM pública
-            // (igualdades numéricas/bool sempre unem por AND).
-            if (criteriaList.Count > 1 && criteriaList.Any(c => !c.IsAnd))
-                throw new BwoqCapabilityException(
-                    "Múltiplos critérios em disjunção (OR) não são expressáveis pelo GenericRepository " +
-                    "(ele combina critérios com AND). Use o operador '&', ou os modos de execução SQL (ToSql) / LINQ (Apply).");
+            bool? conjunction = null;
 
             foreach (var criteria in criteriaList)
             {
                 if (criteria.Predicate.HasNavigation)
                     throw new BwoqCapabilityException(
                         "Critério sobre agregado (token '>' em Where) não é expressável pelo GenericRepository: " +
-                        "a Specification pública não expõe o metadata de JOIN. Use SQL (ToSql) ou LINQ (Apply).");
+                        "o loadComposition carrega composição para leitura, mas a Specification pública não expõe " +
+                        "o metadata de JOIN ([RelationalColumn]) para filtrar por coluna do agregado. " +
+                        "Use SQL (ToSql) ou LINQ (Apply).");
 
                 var targets = BwoqExpression.ResolveRootProps(entityType, criteria.Predicate.RootMask);
                 if (targets.Length == 0)
                     throw new InvalidCriteriaExpression();
 
-                if (!criteria.IsAnd && targets.Length > 1)
-                    throw new BwoqCapabilityException(
-                        "Critério multi-coluna em disjunção (OR) não é combinável pelo GenericRepository. " +
-                        "Use '&' (AND), um critério por chamada, ou os modos SQL (ToSql) / LINQ (Apply).");
-
-                // Caminho Search: um único critério 'like' sobre coluna [Filterable].
+                // Caminho Search: um único critério 'like' sobre coluna única [Filterable], em conjunção.
                 if (criteriaList.Count == 1 && targets.Length == 1
                     && criteria.Operator == BwoqOperator.Default
                     && targets[0].PropertyType == typeof(string)
@@ -105,15 +97,30 @@ namespace Rochas.BWOQ.Data
                 {
                     result.UseSearch = true;
                     result.SearchCriteria = criteria.RawValue;
+                    result.FilterConjunction = true;
                     continue;
+                }
+
+                // A ORM publica UM único modo de combinação (filterConjunction) para todas as
+                // condições do filtro → Disjunção (OR) é expressável se TODA a expressão for
+                // disjuntiva; Mistura AND/OR não é combinável.
+                foreach (var target in targets)
+                {
+                    if (conjunction.HasValue && conjunction.Value != criteria.IsAnd)
+                        throw new BwoqCapabilityException(
+                            "Mistura de conjunção/disjunção (AND e OR) não é expressável pelo GenericRepository: " +
+                            "ele aplica um único modo de combinação (filterConjunction) a todas as condições. " +
+                            "Use SQL (ToSql) ou LINQ (Apply).");
+
+                    conjunction = criteria.IsAnd;
                 }
 
                 foreach (var target in targets)
                     ApplyCriteriaToProperty(entityType, result.Filter, target, criteria);
-
-                if (criteria.IsAnd)
-                    result.FilterConjunction = true;
             }
+
+            if (conjunction.HasValue)
+                result.FilterConjunction = conjunction.Value;
         }
 
         private static void ApplyCriteriaToProperty(Type entityType, object filter, PropertyInfo prop, BwoqCriteria criteria)

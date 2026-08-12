@@ -412,11 +412,28 @@ namespace Rochas.BWOQ.Test
         }
 
         [Fact]
-        public void ToRepositoryQuery_MultipleCriteriaWithOr_ThrowsCapability()
+        public void ToRepositoryQuery_Disjunction_SetsFilterConjunctionFalse()
         {
+            // Dois critérios sem '&' → disjunção (OR) → filterConjunction = false na ORM.
+            var target = BwoqQuery<RepoClient>.Create()
+                .Where("2::carlos") // Name (like)
+                .Where("8::1=")     // Active = true
+                .ToRepositoryQuery();
+
+            Assert.NotNull(target.Filter);
+            Assert.Equal("carlos", target.Filter.Name);
+            Assert.True(target.Filter.Active);
+            Assert.False(target.UseSearch);
+            Assert.False(target.FilterConjunction);
+        }
+
+        [Fact]
+        public void ToRepositoryQuery_MixedAndOr_ThrowsCapability()
+        {
+            // '&' (AND) no primeiro, OR no segundo → mistura inexprimível pela ORM pública.
             var query = BwoqQuery<RepoClient>.Create()
-                .Where("2::carlos")
-                .Where("8::1="); // segundo critério sem '&' → disjunção
+                .Where("8::1&=")   // AND
+                .Where("2::carlos"); // OR
 
             Assert.Throws<BwoqCapabilityException>(() => query.ToRepositoryQuery());
         }

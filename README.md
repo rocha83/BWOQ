@@ -391,15 +391,49 @@ var sync    = repoQuery.BuildSync(repository);        // IQuerySyncBuilder<T>
 > A execução permanece com o caller (await/ToList). Sem `[Filterable]`/`[RangeFilter]`,
 > o façade lança `BwoqCapabilityException` orientando a usar SQL ou LINQ.
 
+### Composição (loadComposition) e Disjunção (OR) — suportadas
+
+O façade explora a API pública da Specification:
+
+- **Composição**: projeção com navegação (`Select("3>1:2")`) liga `loadComposition = true`
+  (`[RelatedEntity]`) para carregar agregados por JOIN. Assim funciona:
+
+```csharp
+var repoQuery = BwoqQuery<Employee>.Create()
+    .Select("3>1:2")          // Id + Name do Employee + Logon do Credential
+    .Where("8::1&=")          // Active = true (Employee)
+    .ToRepositoryQuery();
+
+Assert.True(repoQuery.LoadComposition);        // eager loading via [RelatedEntity]
+// Execute: repoQuery.Build(repository).ToList() → Employee com Credential populado
+```
+
+- **Disjunção (OR)**: o GenericRepository publica `filterConjunction` — quando **toda** a
+  expressão for disjuntiva (critérios sem `&`), o façade mapeia `filterConjunction = false`
+  e a ORM combina as condições com `OR`:
+
+```csharp
+var repoQuery = BwoqQuery<PersonFilter>.Create()
+    .Where("2::silva")        // Name like "silva" OR
+    .Where("32::1=")          // Active = true   (OR)
+    .ToRepositoryQuery();
+
+Assert.False(repoQuery.FilterConjunction);     // OR
+```
+
+> Busca legada `Search(criteria, ...)` existe como otimização para um único critério like
+> sobre coluna `[Filterable]`. `BulkSearch(Object[] criterias, ...)` segue disponível na
+> ORM para disjunções por critérios independentes.
+
 ### Limitações por design (BwoqCapabilityException)
 
-| Situação                              | Modo SQL / Repositório                    | Alternativa                     |
-| ------------------------------------- | ----------------------------------------- | ------------------------------- |
-| Navegação (`>ordinal:máscara`) em projeção/filtro | JOIN exige metadata privada da ORM | LINQ (`Apply`) ou `loadComposition` via `[RelatedEntity]` |
-| Comparadores estritos `>`/`<` da ORM pública | ORM pública só suporta `>=`/`<=` via `[RangeFilter]` | SQL (`ToSql`) ou LINQ (`Apply`) |
-| Igualdade exata `=` em string não-chave | ORM busca por semelhança LIKE | SQL (`ToSql`) ou LINQ (`Apply`) |
-| Critérios múltiplos em disjunção `Or`  | ORM combina filtros com `And` | use `&` (AND) ou SQL/LINQ |
-| Booleano `false` / valor default (0, empty) | são ignorados como filtro vazio pela ORM | SQL (`ToSql`) ou LINQ (`Apply`) |
+| Situação                              | Motivo                                     | Alternativa                     |
+| ------------------------------------- | ------------------------------------------ | ------------------------------- |
+| Filtro via navegação (`Where("2>1:2::...")`) | `loadComposition` carrega composição para leitura; filtrar por coluna do agregado exigiria JOIN explícito ([RelationalColumn] privada) | SQL (`ToSql`) ou LINQ (`Apply`) |
+| Mistura AND + OR na mesma expressão   | a ORM aplica um único `filterConjunction` a todas as condições | use só `&` ou só disjunção |
+| Comparadores estritos `>`/`<`         | ORM pública expõe só `>=`/`<=` via `[RangeFilter]` | SQL (`ToSql`) ou LINQ (`Apply`) |
+| Igualdade exata `=` em string não-chave | ORM busca por semelhança (LIKE)           | SQL (`ToSql`) ou LINQ (`Apply`) |
+| Booleano `false` / valor default (0, empty) | ORM ignora filtro com valor vazio          | SQL (`ToSql`) ou LINQ (`Apply`) |
 
 O token `>` permanece **exclusivamente navegação em composição** (nunca comparação);
 comparadores são `+` (maior), `-` (menor), `=+` (maior/igual), `=-` (menor/igual) e `=`
