@@ -126,7 +126,7 @@ namespace Rochas.BWOQ.Data
                 case BwoqOperator.LessOrEqual: return string.Concat(column, " <= ", literal);
                 default:
                     var likeValue = string.Concat("%", rawValue.Replace("'", "''"), "%");
-                    return string.Concat("LOWER(", column, ") LIKE LOWER('%", likeValue, "')");
+                    return string.Concat("LOWER(", column, ") LIKE LOWER('", likeValue, "')");
             }
         }
 

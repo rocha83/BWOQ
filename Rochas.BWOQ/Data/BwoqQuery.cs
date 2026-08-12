@@ -80,7 +80,7 @@ namespace Rochas.BWOQ.Data
         public IQueryable Apply(IQueryable<T> source)
         {
             var engine = new BitWiseQuery<T>(source);
-            var filter = engine.Q(SelectExpression ?? AllMaskExpression());
+            var filter = engine.Q(AllMaskExpression());
 
             foreach (var where in _whereExpressions)
                 filter = filter.W(where);
@@ -90,6 +90,13 @@ namespace Rochas.BWOQ.Data
 
             if (GroupExpression != null)
                 return filter.G(GroupExpression, GroupByExpression);
+
+            if (SelectExpression != null)
+            {
+                var predicate = BwoqExpression.ParsePredicate(SelectExpression);
+                var projection = BwoqExpression.BuildProjectionExpression(typeof(T), predicate);
+                return System.Linq.Dynamic.Core.DynamicQueryableExtensions.Select(filter, projection);
+            }
 
             return filter;
         }

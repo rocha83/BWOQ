@@ -70,7 +70,7 @@ namespace Rochas.BWOQ.Data
     public static class BwoqExpression
     {
         private static readonly Regex CriteriaPattern =
-            new Regex(@"^(?<pred>\d+(?:\>\d+:\d+)*)::(?<value>.*?)(?<amp>&?)(?<suffix>(?:=\-|=+|=|\+|\-)?)$",
+            new Regex(@"^(?<pred>\d+(?:\>\d+:\d+)*)::(?<value>.*?)(?<amp>&?)(?<suffix>(?:=\-|=\+|=|\+|\-)?)$",
                 RegexOptions.Compiled);
 
         private static readonly Regex PredicatePattern =
@@ -207,6 +207,25 @@ namespace Rochas.BWOQ.Data
                     $"propriedades de composição. O token '>' é exclusivo para navegação em composição.");
 
             return compositionProps[ordinal - 1];
+        }
+
+        /// <summary>
+        /// Projeção LINQ dinâmica de um predicado: raiz + navegações (Aggregate.Prop),
+        /// na forma aceita por System.Linq.Dynamic.Core (new(Id, Name, Credential.Logon)).
+        /// </summary>
+        public static string BuildProjectionExpression(Type entityType, BwoqPredicate predicate)
+        {
+            var parts = new List<string>();
+            parts.AddRange(ResolveRootProps(entityType, predicate.RootMask).Select(p => p.Name));
+
+            foreach (var navigation in predicate.Navigations)
+            {
+                var composition = ResolveNavigation(entityType, navigation.Ordinal);
+                parts.AddRange(ResolveRootProps(composition.PropertyType, navigation.Mask)
+                               .Select(p => string.Concat(composition.Name, ".", p.Name)));
+            }
+
+            return string.Concat("new (", string.Join(", ", parts), ")");
         }
 
         #endregion

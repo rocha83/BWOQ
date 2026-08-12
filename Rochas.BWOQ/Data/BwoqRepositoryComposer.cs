@@ -191,6 +191,8 @@ namespace Rochas.BWOQ.Data
                 if (coerced is bool boolValue && !boolValue)
                     throw new BwoqCapabilityException(
                         $"Filtro booleano 'false' sobre '{prop.Name}' é ignorado pela ORM (valor vazio). Use SQL (ToSql) ou LINQ (Apply).");
+
+                prop.SetValue(filter, coerced);
             }
             else if (!IsEmptyDefault(coerced))
             {
@@ -204,25 +206,52 @@ namespace Rochas.BWOQ.Data
             }
         }
 
-        private static void ApplyRange(object filter, Type entityType, PropertyInfo prop, Type propType,
-                                       string rawValue, BwoqOperator op)
+private static void ApplyRange(object filter, Type entityType, PropertyInfo prop, Type propType,
+                               string rawValue, BwoqOperator op)
         {
             var rangeAttribute = prop.GetCustomAttribute<RangeFilterAttribute>();
-            if (rangeAttribute == null || string.IsNullOrWhiteSpace(rangeAttribute.LinkedRangeProperty))
-                throw new BwoqCapabilityException(
-                    $"Comparação '{op}' sobre '{prop.Name}' exige decoração [RangeFilter(LinkedRangeProperty = ...)] " +
-                    "para ser expressável pelo GenericRepository.");
 
-            var linkedProp = entityType.GetProperty(rangeAttribute.LinkedRangeProperty);
-            if (linkedProp == null)
-                throw new BwoqCapabilityException(
-                    $"Propriedade vinculada '{rangeAttribute.LinkedRangeProperty}' de [RangeFilter] não encontrada em {entityType.Name}.");
+            if (op == BwoqOperator.GreaterOrEqual)
+            {
+                // Limite inferior ("de"): a própria propriedade decorada [RangeFilter] recebe o valor.
+                if (rangeAttribute == null)
+                    throw new BwoqCapabilityException(
+                        $"Comparação '>= ' sobre '{prop.Name}' exige decoração [RangeFilter(LinkedRangeProperty = ...)] " +
+                        "para ser expressável pelo GenericRepository.");
 
-            var value = CoerceValue(rawValue, op == BwoqOperator.GreaterOrEqual ? propType : linkedProp.PropertyType);
+                var lowerValue = CoerceValue(rawValue, propType);
+                prop.SetValue(filter, lowerValue);
+                return;
+            }
 
-            // ORM: "de" (prop decorada) → >= ; "até" (prop vinculada) → <=
-            var targetProp = op == BwoqOperator.GreaterOrEqual ? prop : linkedProp;
-            targetProp.SetValue(filter, value);
+            // Limite superior ("até"): se a prop é decorada, o alvo é a vinculada; senão a prop
+            // mesma, desde que seja a vinculada de algum par [RangeFilter] do tipo.
+            PropertyInfo targetProp;
+            if (rangeAttribute != null && !string.IsNullOrWhiteSpace(rangeAttribute.LinkedRangeProperty))
+            {
+                targetProp = entityType.GetProperty(rangeAttribute.LinkedRangeProperty);
+                if (targetProp == null)
+                    throw new BwoqCapabilityException(
+                        $"Propriedade vinculada '{rangeAttribute.LinkedRangeProperty}' de [RangeFilter] não encontrada em {entityType.Name}.");
+            }
+            else
+            {
+                var isLinkedTarget = entityType.GetProperties().Any(candidate =>
+                {
+                    var linked = candidate.GetCustomAttribute<RangeFilterAttribute>();
+                    return linked != null && linked.LinkedRangeProperty == prop.Name;
+                });
+
+                if (!isLinkedTarget)
+                    throw new BwoqCapabilityException(
+                        $"Comparação '<= ' sobre '{prop.Name}' exige decoração [RangeFilter(LinkedRangeProperty = ...)] " +
+                        $"ou estar vinculada ao limite superior de algum par para ser expressável pelo GenericRepository.");
+
+                targetProp = prop;
+            }
+
+            var upperValue = CoerceValue(rawValue, targetProp.PropertyType);
+            targetProp.SetValue(filter, upperValue);
         }
 
         private static bool IsFilterable(PropertyInfo prop)
