@@ -89,7 +89,10 @@ namespace Rochas.BWOQ.Data
                 if (targets.Length == 0)
                     throw new InvalidCriteriaExpression();
 
-                // Caminho Search: um único critério 'like' sobre coluna única [Filterable], em conjunção.
+                // Caminho Search: um único critério 'like' sobre coluna única [Filterable].
+                // A busca nativa da ORM preenche TODAS as colunas [Filterable] com o critério e
+                // combina com OR (filterConjunction=false); forçar AND faria a busca retornar vazio
+                // sempre que a entidade tiver mais de uma coluna filterable.
                 if (criteriaList.Count == 1 && targets.Length == 1
                     && criteria.Operator == BwoqOperator.Default
                     && targets[0].PropertyType == typeof(string)
@@ -97,7 +100,7 @@ namespace Rochas.BWOQ.Data
                 {
                     result.UseSearch = true;
                     result.SearchCriteria = criteria.RawValue;
-                    result.FilterConjunction = true;
+                    result.FilterConjunction = false;
                     continue;
                 }
 
