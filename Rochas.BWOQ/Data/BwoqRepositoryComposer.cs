@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
-using Rochas.DapperRepository.Specification.Annotations;
-using Rochas.DapperRepository.Specification.Enums;
+using Rochas.Data.Specification.Annotations;
+using Rochas.Data.Specification.Enums;
 
 namespace Rochas.BWOQ.Data
 {
@@ -13,7 +13,7 @@ namespace Rochas.BWOQ.Data
     /// Tradutor do modo GenericRepository (modo 3): a inteligência do parser BWOQ
     /// materializa critérios como entidade-filtro tipada T por reflexão, respeitando
     /// a semântica de "valor vazio ignorado" da ORM, e exporta ordenação/agrupamento
-    /// para os builders da Rochas.DapperRepository.Specification.
+    /// para os builders da Rochas.Data.Specification.
     /// </summary>
     public static class BwoqRepositoryComposer
     {

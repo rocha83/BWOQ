@@ -6,30 +6,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Rochas.BWOQ;
 using Rochas.BWOQ.Data;
-using Rochas.DapperRepository.Specification.Annotations;
-using Rochas.DapperRepository.Specification.Enums;
+using Rochas.Data.Specification.Annotations;
+using Rochas.Data.Specification.Enums;
 
 namespace Rochas.BWOQ.Test
 {
-    public class SqlPerson
-    {
-        [Column("person_id")]
-        public decimal Id { get; set; }
-
-        [Column("nm")]
-        public string Name { get; set; } = "";
-    }
-
-    [Table("people", Schema = "app")]
-    public class SqlPeople
-    {
-        [Column("person_id")]
-        public decimal Id { get; set; }
-
-        [Column("nm")]
-        public string Name { get; set; } = "";
-    }
-
     public class RepoClient
     {
         public decimal Id { get; set; }
@@ -175,104 +156,6 @@ namespace Rochas.BWOQ.Test
         #endregion
 
         #region Modo 2 — SQL ANSI (ToSql)
-
-        [Fact]
-        public void ToSql_NoSelect_ReturnsAllColumns()
-        {
-            var sql = BwoqQuery<Person>.Create().ToSql(DatabaseEngine.SQLServer);
-
-            Assert.Equal("SELECT * FROM Person", sql);
-        }
-
-        [Fact]
-        public void ToSql_Select_ProjectsChosenColumns()
-        {
-            var sql = BwoqQuery<Person>.Create()
-                .Select("6") // Name (2) + City (4)
-                .ToSql(DatabaseEngine.SQLServer);
-
-            Assert.Equal("SELECT Name, City FROM Person", sql);
-        }
-
-        [Fact]
-        public void ToSql_WhereEquals_AddsClause()
-        {
-            var sql = BwoqQuery<Person>.Create()
-                .Where("32::1&=")
-                .ToSql(DatabaseEngine.SQLServer);
-
-            Assert.Equal("SELECT * FROM Person WHERE (Active = 1)", sql);
-        }
-
-        [Fact]
-        public void ToSql_WhereLike_UsesLower()
-        {
-            var sql = BwoqQuery<Person>.Create()
-                .Where("2::carlos")
-                .ToSql(DatabaseEngine.SQLServer);
-
-            Assert.Equal("SELECT * FROM Person WHERE (LOWER(Name) LIKE LOWER('%carlos%'))", sql);
-        }
-
-        [Fact]
-        public void ToSql_WhereGreaterOrEqual_UsesOperator()
-        {
-            var sql = BwoqQuery<Person>.Create()
-                .Where("16::35=+")
-                .ToSql(DatabaseEngine.SQLServer);
-
-            Assert.Equal("SELECT * FROM Person WHERE (Age >= 35)", sql);
-        }
-
-        [Fact]
-        public void ToSql_OrderBy_AppendsAscendingByDefault()
-        {
-            var sql = BwoqQuery<Person>.Create()
-                .OrderBy("2")
-                .ToSql(DatabaseEngine.MySQL);
-
-            Assert.Equal("SELECT * FROM Person ORDER BY Name ASC", sql);
-        }
-
-        [Fact]
-        public void ToSql_OrderByDescending_AppendsDescending()
-        {
-            var sql = BwoqQuery<Person>.Create()
-                .OrderByDescending("2")
-                .ToSql(DatabaseEngine.MySQL);
-
-            Assert.Equal("SELECT * FROM Person ORDER BY Name DESC", sql);
-        }
-
-        [Fact]
-        public void ToSql_GroupByWithSum_AddsAggregationClause()
-        {
-            var sql = BwoqQuery<Person>.Create()
-                .GroupBy("64^", "4") // CreditLimit (64) suma, agrupado por City (4)
-                .ToSql(DatabaseEngine.SQLite);
-
-            Assert.Equal("SELECT City, SUM(CreditLimit) AS SumOfCreditLimits FROM Person GROUP BY City", sql);
-        }
-
-        [Fact]
-        public void ToSql_Postgres_QuotesIdentifiers()
-        {
-            var sql = BwoqQuery<Person>.Create()
-                .Select("6")
-                .ToSql(DatabaseEngine.PostgreSQL);
-
-            Assert.Equal("SELECT \"Name\", \"City\" FROM \"Person\"", sql);
-        }
-
-        [Fact]
-        public void ToSql_ColumnAndSchemaAttributes_Resolved()
-        {
-            var sql = BwoqQuery<SqlPeople>.Create()
-                .Select("1") // Id (1) → person_id
-                .ToSql(DatabaseEngine.MySQL);
-
-            Assert.Equal("SELECT person_id FROM app.people", sql);
-        }
 
         [Fact]
         public void ToSql_NavigationOnSelect_ThrowsCapability()

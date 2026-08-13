@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
@@ -40,6 +41,7 @@ namespace Rochas.BWOQ.Helpers
         {
             var props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                             .Where(prp => !prp.PropertyType.Name.Equals("ICollection`1"))
+                            .Where(prp => prp.GetCustomAttribute<NotMappedAttribute>() == null)
                             .Where(prp => !BuildExclusions(prp, type))
                             .ToArray();
 

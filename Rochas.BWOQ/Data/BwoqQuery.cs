@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using Rochas.DapperRepository.Specification.Enums;
+using Rochas.Data.Specification.Enums;
 
 namespace Rochas.BWOQ.Data
 {
     /// <summary>
     /// Wrapper de consultas na sintaxe BWOQ com três modos de execução, dependendo
-    /// apenas de Rochas.DapperRepository.Specification:
+    /// apenas de Rochas.Data.Specification:
     ///  - Apply(IQueryable)      → modo LINQ (fonte do caller);
     ///  - ToSql(DatabaseEngine)  → SQL ANSI puro em string (nunca executa);
     ///  - ToRepositoryQuery()    → comando por reflexão p/ GenericRepository.

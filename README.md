@@ -305,13 +305,13 @@ O pacote `Rochas.BWOQ.Test` cobre (55 testes aprovados / 0 falhas):
 
 ## 🚀 Façade `BwoqQuery<T>` — 3 Modos de Execução (v1.6.0)
 
-O `BwoqQuery<T>` é o façade de integração com **Rochas.DapperRepository.Specification**
+O `BwoqQuery<T>` é o façade de integração com **Rochas.Data.Specification**
 (sem dependência da ORM): a mesma expressão BWOQ é traduzida para **LINQ**, **SQL ANSI
 multi-dialeto** ou um **comando do GenericRepository** (via reflexão).
 
 ```csharp
 using Rochas.BWOQ.Data;
-using Rochas.DapperRepository.Specification.Enums;
+using Rochas.Data.Specification.Enums;
 ```
 
 Composição imutável por fluência — todos os métodos validam a sintaxe no momento da chamada:

@@ -2,13 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Rochas.DapperRepository.Specification.Enums;
+using Rochas.Data.Specification.Enums;
+using Rochas.SqlWrapper.Helpers;
 
 namespace Rochas.BWOQ.Data
 {
     /// <summary>
-    /// Tradutor do modo SQL ANSI (modo 2): a inteligência do parser BWOQ fundida
-    /// com a composição de comandos SQL multi-dialeto da ORM Dapper.
+    /// Tradutor do modo SQL ANSI (modo 2): a inteligência do parser BWOQ materializa
+    /// a expressão como entidade-filtro tipada T e delega a tradução SQL multi-dialeto
+    /// para a camada compartilhada Rochas.SqlWrapper (EntitySqlParser).
     /// Devolve APENAS a string SQL traduzida — nunca executa.
     /// </summary>
     public static class BwoqSqlComposer
@@ -22,8 +24,6 @@ namespace Rochas.BWOQ.Data
             var groupBy = query.GroupByExpression != null ? BwoqExpression.ParsePredicate(query.GroupByExpression) : null;
             var criteriaList = query.WhereExpressions.Select(BwoqExpression.ParseCriteria).ToList();
 
-            var table = BwoqColumnResolver.QuoteIdentifier(BwoqColumnResolver.GetTableName(entityType), engine);
-
             // Navegação '>' é exclusiva de composição; sem metadata pública de JOIN a lib
             // orienta os modos LINQ / Repositório(loadComposition).
             EnsureNoNavigation(select, "projeção");
@@ -33,84 +33,66 @@ namespace Rochas.BWOQ.Data
             foreach (var criteria in criteriaList)
                 EnsureNoNavigation(criteria.Predicate, "critério");
 
-            var sql = new StringBuilder();
-            sql.Append("SELECT ");
+            // Grupo exige o agrupamento ('by') declarado.
+            if (group != null && (groupBy == null || groupBy.RootMask == 0))
+                throw new InvalidGroupExpression();
 
-            if (group != null)
-            {
-                if (groupBy == null || groupBy.RootMask == 0)
-                    throw new InvalidGroupExpression();
+            // Materializa a expressão como comando de repositório (filtro tipado + agregações)
+            // pelo mesmo caminho do modo 3 — a única inteligência SQL que resta daqui
+            // delega para o EntitySqlParser da Rochas.SqlWrapper.
+            var repository = BwoqRepositoryComposer.Build(query);
 
-                var groupColumns = BwoqExpression.ResolveRootProps(entityType, groupBy.RootMask);
-                var aggregationColumns = BwoqExpression.ResolveRootProps(entityType, group.RootMask);
+            string showAttributes = null;
+            if (select != null && select.RootMask != 0)
+                showAttributes = string.Join(",", BwoqExpression.ResolveRootProps(entityType, select.RootMask)
+                    .Select(p => p.Name));
 
-                if (group.AggregationSuffix == null && aggregationColumns.Length == 0)
-                {
-                    // Agrupamento sem agregação → DISTINCT das colunas de agrupamento
-                    AppendColumns(sql, groupColumns, engine);
-                }
-                else
-                {
-                    var columns = new List<string>();
-                    columns.AddRange(groupColumns.Select(p => BwoqColumnResolver.QuoteIdentifier(BwoqColumnResolver.GetColumnName(p), engine)));
+            string groupAttributes = null;
+            if (groupBy != null && groupBy.RootMask != 0)
+                groupAttributes = string.Join(",", BwoqExpression.ResolveRootProps(entityType, groupBy.RootMask)
+                    .Select(p => p.Name));
 
-                    if (aggregationColumns.Length == 0 && group.AggregationSuffix != null)
-                        throw new InvalidGroupExpression();
-
-                    foreach (var prop in aggregationColumns)
-                    {
-                        var column = BwoqColumnResolver.QuoteIdentifier(BwoqColumnResolver.GetColumnName(prop), engine);
-                        var (function, alias) = BwoqColumnResolver.BuildAggregation(group.AggregationSuffix.Value, column, prop.Name);
-                        var aggAlias = BwoqColumnResolver.QuoteIdentifier(alias, engine);
-                        columns.Add(string.Concat(function, "(", column, ") AS ", aggAlias));
-                    }
-
-                    sql.Append(string.Join(", ", columns));
-                }
-            }
-            else if (select != null && select.RootMask != 0)
-            {
-                AppendColumns(sql, BwoqExpression.ResolveRootProps(entityType, select.RootMask), engine);
-            }
-            else
-            {
-                sql.Append("*");
-            }
-
-            sql.Append(" FROM ").Append(table);
-
-            if (criteriaList.Count > 0)
-            {
-                var clauses = criteriaList.Select(c => BuildCriteriaClause(entityType, c, engine)).Where(s => !string.IsNullOrEmpty(s));
-                var full = string.Join(" AND ", clauses);
-                if (!string.IsNullOrEmpty(full))
-                    sql.Append(" WHERE ").Append(full);
-            }
-
-            if (group != null && groupBy != null && groupBy.RootMask != 0)
-            {
-                var groupColumns = BwoqExpression.ResolveRootProps(entityType, groupBy.RootMask)
-                    .Select(p => BwoqColumnResolver.QuoteIdentifier(BwoqColumnResolver.GetColumnName(p), engine));
-                sql.Append(" GROUP BY ").Append(string.Join(", ", groupColumns));
-            }
-
+            string sortAttributes = null;
             if (order != null && order.RootMask != 0)
-            {
-                var orderColumns = BwoqExpression.ResolveRootProps(entityType, order.RootMask)
-                    .Select(p => BwoqColumnResolver.QuoteIdentifier(BwoqColumnResolver.GetColumnName(p), engine));
-                sql.Append(" ORDER BY ").Append(string.Join(", ", orderColumns))
-                   .Append(query.OrderDescending ? " DESC" : " ASC");
-            }
+                sortAttributes = string.Join(",", BwoqExpression.ResolveRootProps(entityType, order.RootMask)
+                    .Select(p => p.Name));
 
-            return sql.ToString();
+            var sqlParameters = new Dictionary<string, object>();
+            var sql = EntitySqlParser.ParseEntity(repository.Filter, engine, PersistenceAction.Query, repository.Filter,
+                filterConjunction: repository.FilterConjunction,
+                onlyListableAttributes: select != null && select.RootMask != 0,
+                showAttributes: showAttributes,
+                groupAttributes: groupAttributes,
+                sortAttributes: sortAttributes,
+                orderDescending: query.OrderDescending,
+                sqlParameters: sqlParameters,
+                aggregates: repository.Aggregates != null
+                    ? new Dictionary<string, DataAggregationType>(repository.Aggregates)
+                    : null);
+
+            return InlineParameters(sql, sqlParameters);
         }
 
-        private static void AppendColumns(StringBuilder sql, System.Reflection.PropertyInfo[] props, DatabaseEngine engine)
+        /// <summary>
+        /// O modo ToSql devolve uma string SQL autônoma (nunca executa), então os
+        /// marcadores @pN produzidos pelo parser para filtros LIKE/string são
+        /// substituídos pelo respectivo literal formatado para o dialeto.
+        /// </summary>
+        private static string InlineParameters(string sql, Dictionary<string, object> sqlParameters)
         {
-            var columns = props
-                .Select(p => BwoqColumnResolver.QuoteIdentifier(BwoqColumnResolver.GetColumnName(p), engine))
-                .ToList();
-            sql.Append(columns.Count > 0 ? string.Join(", ", columns) : "*");
+            foreach (var param in sqlParameters)
+                sql = sql.Replace(param.Key, FormatInlineLiteral(param.Value));
+
+            return sql;
+        }
+
+        private static string FormatInlineLiteral(object value)
+        {
+            if (value == null)
+                return "NULL";
+
+            var strValue = value.ToString();
+            return string.Concat("'", strValue.Replace("'", "''"), "'");
         }
 
         private static void EnsureNoNavigation(BwoqPredicate predicate, string context)
@@ -121,22 +103,6 @@ namespace Rochas.BWOQ.Data
                     "SQL ANSI: a Specification pública (1.5.2) não expõe os metadados de JOIN " +
                     "([RelationalColumn]/[RelatedEntity]). Use o modo LINQ (Apply) ou o modo " +
                     "Repositório (ToRepositoryQuery, composição via loadComposition/[RelatedEntity]).");
-        }
-
-        private static string BuildCriteriaClause(Type entityType, BwoqCriteria criteria, DatabaseEngine engine)
-        {
-            var targets = BwoqExpression.ResolveRootProps(entityType, criteria.Predicate.RootMask);
-            if (targets.Length == 0)
-                throw new InvalidCriteriaExpression();
-
-            var parts = targets.Select(p =>
-            {
-                var column = BwoqColumnResolver.QuoteIdentifier(BwoqColumnResolver.GetColumnName(p), engine);
-                return BwoqColumnResolver.BuildComparison(column, p.PropertyType, criteria.RawValue, criteria.Operator, engine);
-            }).ToList();
-
-            var combinator = criteria.IsAnd ? " AND " : " OR ";
-            return string.Concat("(", string.Join(combinator, parts), ")");
         }
     }
 }

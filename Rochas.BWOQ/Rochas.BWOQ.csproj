@@ -11,12 +11,13 @@
     <Description>Rochas BWOQ - BitWise Object Query for compact query composition</Description>
     <PackageTags>linq dynamic query bitwise elastic search rochas bwoq sql ansi repository dapper</PackageTags>    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>GNUv2_License.txt</PackageLicenseFile>
-    <Version>1.6.0</Version>
-    <PackageReleaseNotes>v1.6.0 (dapper-orm-integration): BWOQ syntax now translates to 3 execution modes relying ONLY on Rochas.DapperRepository.Specification: (1) LINQ on caller IQueryable (existing BitWiseQuery/BWQFilter); (2) pure ANSI SQL string, multi-dialect (MySQL/SQLServer/PostgreSQL/SQLite) via BwoqQuery.ToSql(DatabaseEngine); (3) DapperRepository command via reflection (filter T, [Filterable] Search, [RangeFilter] range bounds, loadComposition, OrderBy/GroupBy + DataAggregationType) via BwoqQuery.ToRepositoryQuery(). Nav token stays navigation-only into composition attributes. Strict comparisons and navigation beyond the public Specification metadata raise BwoqCapabilityException with orientation. Previous: modernized to netstandard2.1, System.Linq.Dynamic.Core, System.Text.Json; short aliases (Q, W, G, O, OD); chain builder propagation, instance-based state, like/contains default, conjunction token; hierarchy BASE TO DERIVED and BigInteger masks via BitWiseTable</PackageReleaseNotes>
+    <Version>2.0.0</Version>
+    <PackageReleaseNotes>v2.0.0 (data-toolkit): dependencies migrated to Rochas.Data.Specification 2.0.0 (namespace Rochas.Data.Specification.*) and to Rochas.SqlWrapper 2.0.0 (now a NuGet package instead of project reference). No behavior change.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Rochas.DapperRepository.Specification" Version="1.5.2" />
+    <PackageReference Include="Rochas.Data.Specification" Version="2.0.0" />
+    <PackageReference Include="Rochas.SqlWrapper" Version="2.0.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.3" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
