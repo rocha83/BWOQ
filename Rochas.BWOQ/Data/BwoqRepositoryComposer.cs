@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using Rochas.Data.Specification.Annotations;
 using Rochas.Data.Specification.Enums;
+using Rochas.Data.Specification;
 
 namespace Rochas.BWOQ.Data
 {
@@ -53,7 +54,7 @@ namespace Rochas.BWOQ.Data
 
                 result.GroupByAttributes = BwoqExpression.ResolveRootProps(entityType, groupBy.RootMask).Select(p => p.Name).ToArray();
 
-                var aggregationType = BwoqColumnResolver.ResolveAggregationType(group?.AggregationSuffix);
+                var aggregationType = ResolveAggregationType(group?.AggregationSuffix);
                 if (aggregationType.HasValue && group != null)
                 {
                     var aggregation = new Dictionary<string, DataAggregationType>();
@@ -324,8 +325,21 @@ private static void ApplyRange(object filter, Type entityType, PropertyInfo prop
                 case DateTime date: return date == DateTime.MinValue;
                 case DateTimeOffset offset: return offset == DateTimeOffset.MinValue;
                 case string str: return string.IsNullOrEmpty(str);
-                default:
+                    default:
                     return Convert.ToDecimal(value, CultureInfo.InvariantCulture) == 0m;
+            }
+        }
+
+        private static DataAggregationType? ResolveAggregationType(char? suffix)
+        {
+            switch (suffix)
+            {
+                case '*': return DataAggregationType.Count;
+                case '^': return DataAggregationType.Sum;
+                case '~': return DataAggregationType.Average;
+                case '+': return DataAggregationType.Maximum;
+                case '-': return DataAggregationType.Minimum;
+                default: return null;
             }
         }
     }

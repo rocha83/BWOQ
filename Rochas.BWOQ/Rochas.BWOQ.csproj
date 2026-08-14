@@ -16,8 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Rochas.Data.Specification" Version="2.0.0" />
-    <PackageReference Include="Rochas.SqlWrapper" Version="2.0.0" />
+    <ProjectReference Include="..\..\DataSpecification\Rochas.Data.Specification\Rochas.Data.Specification.csproj" />
+    <ProjectReference Include="..\..\SqlWrapper\Rochas.SqlWrapper\Rochas.SqlWrapper.csproj" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.3" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
