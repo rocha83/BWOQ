@@ -291,7 +291,7 @@ var csv  = bwq.Where("32::1&=", EnumSerialDataType.CSV);
 
 ## 🧪 Testes
 
-O pacote `Rochas.BWOQ.Test` cobre (**70 testes aprovados / 0 falhas**):
+O pacote `Rochas.BWOQ.Test` cobre (**56 testes aprovados / 0 falhas**):
 
 - Projeção de colunas (`Q(..., true)`) e navegação em agregados;
 - Filtros: `=`, `&` (AND), like, `+`, `-`, `=+`, `=-`, inclusive em atributos de agregado e comparação interna (`<`);
@@ -307,11 +307,13 @@ O pacote `Rochas.BWOQ.Test` cobre (**70 testes aprovados / 0 falhas**):
 
 | Métrica          | Valor  |
 | ----------------- | ------ |
-| Linhas            | 95,87% |
-| Branches          | 88,98% |
+| Linhas            | 95,19% |
+| Branches          | 97,56% |
 
 | Tipo                                        | Cobertura |
 | ------------------------------------------- | --------- |
-| BitWiseQuery&lt;T&gt; / BWQFilter&lt;T&gt;  | 95,0% / 100% |
-| Helpers: BitWiseTable, Reflector, Serializer | 100% / 94,1% / 98,4% |
+| BitWiseQuery&lt;T&gt; / BWQFilter&lt;T&gt;  | 95,3% / 100% |
+| Helpers: BitWiseTable, Reflector, Serializer | 100% / 87,5% / 88% |
 | Exceções customizadas (`Invalid*Exception`)  | 100% |
+
+> A implementação do `Reflector` (clone/projeção/tipagem) foi movida para o pacote `Rochas.SqlWrapper` (`EntityReflector`); aqui o `Reflector` permanece apenas como fachada de delegação.
