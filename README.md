@@ -291,10 +291,27 @@ var csv  = bwq.Where("32::1&=", EnumSerialDataType.CSV);
 
 ## 🧪 Testes
 
-O pacote `Rochas.BWOQ.Test` cobre (18 testes aprovados / 0 falhas):
+O pacote `Rochas.BWOQ.Test` cobre (**70 testes aprovados / 0 falhas**):
 
 - Projeção de colunas (`Q(..., true)`) e navegação em agregados;
-- Filtros: `=`, `&` (AND), like, `+`, `-`, `=+`, `=-`, inclusive em atributos de agregado;
+- Filtros: `=`, `&` (AND), like, `+`, `-`, `=+`, `=-`, inclusive em atributos de agregado e comparação interna (`<`);
 - Ordenação `O` / `OD`;
 - Builder encadeado `Q().W().O()/OD()`;
-- Agrupamento `G` e agregações `Count`, `Sum`, `Max`.
+- Agrupamento `G` e agregações `Count`, `Sum`, `Average`, `Max`, `Min`;
+- Construtores de `IList` e `ref`; overloads de serialização `JSON` / `CSV`;
+- Herança base→derivada com máscaras `BigInteger` (> bit 31);
+- Helpers `BitWiseTable`, `Reflector` (clone/projeção/tipagem) e `Serializer` (CSV);
+- Mensagens das exceções customizadas.
+
+### Cobertura de código (assembly Rochas.BWOQ, coverlet)
+
+| Métrica          | Valor  |
+| ----------------- | ------ |
+| Linhas            | 95,87% |
+| Branches          | 88,98% |
+
+| Tipo                                        | Cobertura |
+| ------------------------------------------- | --------- |
+| BitWiseQuery&lt;T&gt; / BWQFilter&lt;T&gt;  | 95,0% / 100% |
+| Helpers: BitWiseTable, Reflector, Serializer | 100% / 94,1% / 98,4% |
+| Exceções customizadas (`Invalid*Exception`)  | 100% |
