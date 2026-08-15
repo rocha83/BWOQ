@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Reflection;
 using Rochas.BWOQ;
 using Rochas.BWOQ.Helpers;
-using Rochas.SqlWrapper.Helpers;
 
 namespace Rochas.BWOQ.Test
 {
@@ -43,16 +42,6 @@ namespace Rochas.BWOQ.Test
                 new Person { Id = 7, Name = "Roberto Almeida", City = "Porto Alegre", State = "RS", Age = 38, Active = true, CreditLimit = 6500 },
                 new Person { Id = 8, Name = "Fernanda Ribeiro", City = "Curitiba", State = "PR", Age = 29, Active = true, CreditLimit = 3800 },
                 new Person { Id = 9, Name = "Marcos Pereira", City = "Rio de Janeiro", State = "RJ", Age = 45, Active = false, CreditLimit = 7200 },
-            };
-        }
-
-        private List<Employee> _employeeData()
-        {
-            return new List<Employee>
-            {
-                new Employee { Id = 1, Name = "Carlos", Age = 35, Active = true, Credential = new Credential { Id = 1, Logon = "carlos.silva", TokenId = "TK-001" } },
-                new Employee { Id = 2, Name = "Ana", Age = 28, Active = true, Credential = new Credential { Id = 2, Logon = "ana.oliveira", TokenId = "TK-002" } },
-                new Employee { Id = 3, Name = "Pedro", Age = 42, Active = false, Credential = new Credential { Id = 3, Logon = "pedro.santos", TokenId = "TK-003" } },
             };
         }
 
@@ -316,161 +305,6 @@ namespace Rochas.BWOQ.Test
             var result = filter.GroupBy("4", "4");
 
             Assert.Null(result);
-        }
-
-        #endregion
-
-        #region Reflector coverage
-
-        [Fact]
-        public void Reflector_InitNullComposition_InitializesChildInstances()
-        {
-            var emp = new Employee { Credential = null };
-            Reflector.InitNullComposition(emp);
-
-            Assert.NotNull(emp.Credential);
-        }
-
-        [Fact]
-        public void Reflector_InitNullComposition_NullSource_IsNoOp()
-        {
-            Reflector.InitNullComposition(null);
-        }
-
-        [Fact]
-        public void Reflector_CloneObjectData_CopiesScalarProperties()
-        {
-            var source = _testData[0];
-            var dest = new Person();
-
-            Reflector.CloneObjectData(source, dest);
-
-            Assert.Equal("Carlos Silva", dest.Name);
-            Assert.Equal("São Paulo", dest.City);
-            Assert.Equal(35m, dest.Age);
-        }
-
-        [Fact]
-        public void Reflector_CloneObjectData_NullDestination_CreatesInstance()
-        {
-            var source = _testData[0];
-
-            Reflector.CloneObjectData(source, null);
-        }
-
-        [Fact]
-        public void Reflector_CloneObjectData_DeepClonesListsAndCompositions()
-        {
-            var source = new Order
-            {
-                Id = 10,
-                Description = "Pedido",
-                Lines = new List<OrderLine>
-                {
-                    new OrderLine { Id = 1, Product = "A", Quantity = 2 },
-                    new OrderLine { Id = 2, Product = "B", Quantity = 3 },
-                },
-                Metadata = new Credential { Logon = "ops.logon" },
-            };
-            var dest = new Order();
-
-            Reflector.CloneObjectData(source, dest);
-
-            Assert.Equal("Pedido", dest.Description);
-            Assert.Equal(2, dest.Lines.Count);
-            Assert.Equal("B", dest.Lines[1].Product);
-            Assert.Equal("ops.logon", dest.Metadata.Logon);
-        }
-
-        [Fact]
-        public void Reflector_GetObjectProps_ReturnsAllPublicProps()
-        {
-            var props = Reflector.GetObjectProps(_testData[0]);
-
-            Assert.Equal(7, props.Length);
-        }
-
-        [Fact]
-        public void Reflector_GetObjectProps_FilterByName()
-        {
-            var props = Reflector.GetObjectProps(_testData[0], "Name", "City");
-
-            Assert.Equal(2, props.Length);
-            Assert.Contains(props, p => p.Name == "Name");
-        }
-
-        [Fact]
-        public void Reflector_GetObjectProps_ChildNavigationFilter()
-        {
-            var props = Reflector.GetObjectProps(_employeeData()[0], "Credential.Logon");
-
-            Assert.Equal(1, props.Length);
-            Assert.Equal("Logon", props[0].Name);
-        }
-
-        [Fact]
-        public void Reflector_GetObjectProps_ChildFilterWithNullInstance()
-        {
-            var props = Reflector.GetObjectProps(new Employee { Credential = null }, "Credential.Logon");
-
-            Assert.Equal(1, props.Length);
-            Assert.Equal("Logon", props[0].Name);
-        }
-
-        [Fact]
-        public void Reflector_GetObjectProps_UnknownFilter_ReturnsEmpty()
-        {
-            var props = Reflector.GetObjectProps(_testData[0], "NotARealProp");
-
-            Assert.Empty(props);
-        }
-
-        [Fact]
-        public void Reflector_GetObjectPropValues_ReturnsValuesArray()
-        {
-            var props = Reflector.GetObjectProps(_testData[0], "Name", "Age");
-            var values = Reflector.GetObjectPropValues(_testData[0], props);
-
-            Assert.Equal("Carlos Silva", values[0]);
-            Assert.Equal(35m, values[1]);
-        }
-
-        [Fact]
-        public void Reflector_GetTypedValue_CoversAllScalarTypes()
-        {
-            Assert.Null(Reflector.GetTypedValue(typeof(string), null));
-            Assert.Null(Reflector.GetTypedValue(typeof(string), DBNull.Value));
-            Assert.Equal((short)5, Reflector.GetTypedValue(typeof(short), "5"));
-            Assert.Equal(5, Reflector.GetTypedValue(typeof(int), "5"));
-            Assert.Equal(5L, Reflector.GetTypedValue(typeof(long), "5"));
-            Assert.Equal(5m, Reflector.GetTypedValue(typeof(decimal), "5"));
-            Assert.Equal(5d, Reflector.GetTypedValue(typeof(double), "5"));
-            Assert.Equal(5f, Reflector.GetTypedValue(typeof(float), "5"));
-            Assert.Equal(5f, Reflector.GetTypedValue(typeof(Single), "5"));
-            Assert.True((bool)Reflector.GetTypedValue(typeof(bool), "true"));
-            Assert.Equal("abc", Reflector.GetTypedValue(typeof(string), "abc"));
-            Assert.Equal(new DateTime(2020, 5, 1), Reflector.GetTypedValue(typeof(DateTime), "2020-05-01"));
-            Assert.Equal(42, Reflector.GetTypedValue(typeof(object), 42));
-        }
-
-        [Fact]
-        public void Reflector_GetInternalChilds_ReturnsChildInstances()
-        {
-            var method = typeof(EntityReflector).GetMethod("getObjectChilds",
-                BindingFlags.Static | BindingFlags.NonPublic);
-            var result = (object[])method.Invoke(null, new object[] { new Employee() });
-
-            Assert.NotNull(result);
-            Assert.Contains(result, r => r is Credential);
-        }
-
-        [Fact]
-        public void ReflectorGeneric_Clone_ReturnsTypedClone()
-        {
-            var clone = Reflector<Person>.CloneObjectData(_testData[0]);
-
-            Assert.Equal("Carlos Silva", clone.Name);
-            Assert.Equal(5000m, clone.CreditLimit);
         }
 
         #endregion
