@@ -12,7 +12,7 @@
     <PackageTags>linq dynamic query bitwise elastic search rochas bwoq sql ansi repository dapper</PackageTags>    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>GNUv2_License.txt</PackageLicenseFile>
     <Version>1.6.3</Version>
-    <PackageReleaseNotes>v1.6.3 (data-toolkit): dependencias migradas para Rochas.Data.Specification 2.0.0 (namespace Rochas.Data.Specification.*) e Rochas.SqlWrapper 1.1.2. Sem mudanca de comportamento.</PackageReleaseNotes>
+    <PackageReleaseNotes>v1.6.3 - Dependencies migrated to Rochas.Data.Specification and Rochas.SqlWrapper. No behavior change.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
