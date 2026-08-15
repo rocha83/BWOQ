@@ -1,6 +1,6 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
@@ -24,6 +24,8 @@ namespace Rochas.BWOQ.Helpers
     /// </summary>
     public static class BitWiseTable
     {
+        private static readonly ConcurrentDictionary<Type, PropertyInfo[]> OrderedPropsCache = new();
+
         /// <summary>Máscara (potência de 2) de cada propriedade elegível, base → derivada, na ordem determinada.</summary>
         public static IReadOnlyList<KeyValuePair<PropertyInfo, BigInteger>> GetTable(Type type)
         {
@@ -39,18 +41,20 @@ namespace Rochas.BWOQ.Helpers
         /// <summary>Propriedades elegíveis na ordem base → derivada.</summary>
         public static PropertyInfo[] GetOrderedProps(Type type)
         {
-            var props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                            .Where(prp => !prp.PropertyType.Name.Equals("ICollection`1"))
-                            .Where(prp => prp.GetCustomAttribute<NotMappedAttribute>() == null)
-                            .Where(prp => !BuildExclusions(prp, type))
-                            .ToArray();
+            return OrderedPropsCache.GetOrAdd(type, t =>
+            {
+                var props = t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                             .Where(prp => !prp.PropertyType.Name.Equals("ICollection`1"))
+                             .Where(prp => !BuildExclusions(prp, t))
+                             .ToArray();
 
-            var order = BuildHierarchyOrder(type);
+                var order = BuildHierarchyOrder(t);
 
-            return props
-                .OrderBy(prp => order.TryGetValue(prp.DeclaringType ?? type, out var lvl) ? lvl : int.MaxValue)
-                .ThenBy(prp => Array.IndexOf(props, prp))
-                .ToArray();
+                return props
+                    .OrderBy(prp => order.TryGetValue(prp.DeclaringType ?? t, out var lvl) ? lvl : int.MaxValue)
+                    .ThenBy(prp => Array.IndexOf(props, prp))
+                    .ToArray();
+            });
         }
 
         /// <summary>Índice (0-based) de uma propriedade na tabela, ou -1 se não elegível.</summary>
