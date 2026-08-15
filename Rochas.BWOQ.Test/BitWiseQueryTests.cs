@@ -1,38 +1,21 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Numerics;
 using Rochas.BWOQ;
 using Rochas.BWOQ.Helpers;
-using Rochas.Data.Specification.Annotations;
 
 namespace Rochas.BWOQ.Test
 {
-    [Table("Person")]
     public class Person
     {
-        [Key]
         public decimal Id { get; set; }
-
-        [Listable]
         public string Name { get; set; } = "";
-
-        [Listable]
         public string City { get; set; } = "";
-
         public string State { get; set; } = "";
-
-        [RangeFilter(LinkedRangeProperty = "AgeEnd")]
         public decimal Age { get; set; }
-
-        [NotMapped]
-        public decimal AgeEnd { get; set; }
-
         public bool Active { get; set; }
-
         public decimal CreditLimit { get; set; }
     }
 
