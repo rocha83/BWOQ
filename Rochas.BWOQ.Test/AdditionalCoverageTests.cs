@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Reflection;
 using Rochas.BWOQ;
 using Rochas.BWOQ.Helpers;
+using Rochas.SqlWrapper.Helpers;
 
 namespace Rochas.BWOQ.Test
 {
@@ -455,7 +456,7 @@ namespace Rochas.BWOQ.Test
         [Fact]
         public void Reflector_GetInternalChilds_ReturnsChildInstances()
         {
-            var method = typeof(Reflector).GetMethod("getObjectChilds",
+            var method = typeof(EntityReflector).GetMethod("getObjectChilds",
                 BindingFlags.Static | BindingFlags.NonPublic);
             var result = (object[])method.Invoke(null, new object[] { new Employee() });
 

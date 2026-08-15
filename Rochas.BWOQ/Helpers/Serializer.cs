@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using Rochas.SqlWrapper.Helpers;
 
 namespace Rochas.BWOQ.Helpers
 {
@@ -16,8 +18,10 @@ namespace Rochas.BWOQ.Helpers
             if ((sourceObject != null) && (sourceObject.Count > 0))
             {
                 var objProps = Reflector.GetObjectProps(sourceObject[0]);
+                var columnMapping = EntityReflector.GetColumnMapping(sourceObject[0].GetType());
                 foreach (var prp in objProps)
-                    result.Append(string.Concat(prp.Name, ";"));
+                    result.Append(string.Concat(
+                        columnMapping.TryGetValue(prp.Name, out var columnName) ? columnName : prp.Name, ";"));
                 result.Remove(result.Length - 1, 1);
                 result.AppendLine();
                 foreach (var src in sourceObject)
@@ -60,7 +64,7 @@ namespace Rochas.BWOQ.Helpers
                     {
                         if (counter < valueCols.Length)
                         {
-                            var hedProp = objectType.GetProperty(hedCol);
+                            var hedProp = ResolvePropertyByColumnName(objectType, hedCol);
 
                             if (hedProp != null)
                             {
@@ -78,6 +82,19 @@ namespace Rochas.BWOQ.Helpers
             }
             
             return result.ToArray();
+        }
+
+        private static PropertyInfo ResolvePropertyByColumnName(Type objectType, string columnName)
+        {
+            var direct = objectType.GetProperty(columnName);
+            if (direct != null) return direct;
+
+            var columnMapping = EntityReflector.GetColumnMapping(objectType);
+            var propertyName = columnMapping
+                               .FirstOrDefault(kvp => kvp.Value.Equals(columnName, StringComparison.OrdinalIgnoreCase))
+                               .Key;
+
+            return propertyName == null ? null : objectType.GetProperty(propertyName);
         }
     }
 }
