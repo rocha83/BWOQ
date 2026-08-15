@@ -19,6 +19,7 @@ dotnet add package Rochas.BWOQ
 ```text
 BitWiseQuery<T>   --> Motor de consulta (métodos longos + aliases Q, W, O, OD, G)
 BWQFilter<T>      --> Builder encadeável, implementa IQueryable<T> / IEnumerable<T>
+BwoqQuery<T>      --> Façade (v1.6.0) com 3 modos de execução: LINQ / ANSI SQL / DapperRepository
 ```
 
 ## 📌 Exemplo de Entidade e Tabela Binária
@@ -315,3 +316,141 @@ O pacote `Rochas.BWOQ.Test` cobre (**70 testes aprovados / 0 falhas**):
 | BitWiseQuery&lt;T&gt; / BWQFilter&lt;T&gt;  | 95,0% / 100% |
 | Helpers: BitWiseTable, Reflector, Serializer | 100% / 94,1% / 98,4% |
 | Exceções customizadas (`Invalid*Exception`)  | 100% |
+
+---
+
+## 🚀 Façade `BwoqQuery<T>` — 3 Modos de Execução (v1.6.0)
+
+O `BwoqQuery<T>` é o façade de integração com **Rochas.Data.Specification**
+(sem dependência da ORM): a mesma expressão BWOQ é traduzida para **LINQ**, **SQL ANSI
+multi-dialeto** ou um **comando do GenericRepository** (via reflexão).
+
+```csharp
+using Rochas.BWOQ.Data;
+using Rochas.Data.Specification.Enums;
+```
+
+Composição imutável por fluência — todos os métodos validam a sintaxe no momento da chamada:
+
+```csharp
+var query = BwoqQuery<Person>.Create()
+    .Select("6")                    // Name (2) + City (4)
+    .Where("32::1&=")               // Active = true
+    .Where("16::35=+")              // Age >= 35
+    .OrderBy("2");                  // Name ASC
+```
+
+### Modo 1 — LINQ (fonte do caller)
+
+`Apply(IQueryable<T>)` devolve um `IQueryable` em que `Select` vira projeção dinâmica e
+`Where`/`OrderBy`/`GroupBy` filtram e agregam a fonte:
+
+```csharp
+var result = query.Apply(personList.AsQueryable()).ToList();
+```
+
+> Quando `Select` é omitido, o façade projeta todas as colunas e devolve entidades tipadas
+> (`IQueryable<Person>`), permitindo `ToList()`/`foreach` diretos.
+
+### Modo 2 — SQL ANSI (somente string, nunca executa)
+
+`ToSql(DatabaseEngine)` devolve a string do comando para o dialeto escolhido
+(`MySQL`, `SQLServer`, `PostgreSQL`, `SQLite`):
+
+```csharp
+var sql = query.ToSql(DatabaseEngine.SQLServer);
+// SELECT Name, City FROM Person WHERE (Active = 1) AND (Age >= 35) ORDER BY Name ASC
+
+var sqlPostgres = BwoqQuery<SqlPeople>.Create()
+    .Select("1")
+    .ToSql(DatabaseEngine.PostgreSQL);
+// SELECT "person_id" FROM "app"."people"
+```
+
+Identificadores são delimitados com aspas no PostgreSQL (incluindo `Schema.Table`).
+`[Table]`/`[Column]` do `System.ComponentModel.DataAnnotations` são respeitados.
+
+### Modo 3 — GenericRepository (reflexão em entidade-filtro)
+
+`ToRepositoryQuery()` materializa a expressão como um comando do repositório sem executar:
+entidade-filtro tipada `T` por reflexão, `Search` para colunas `[Filterable]`,
+`[RangeFilter]` para limites `>=`/`<=`, `loadComposition` para navegação e builders de
+ordenação/agrupamento com `DataAggregationType`:
+
+```csharp
+public class PersonFilter
+{
+    public decimal Id { get; set; }
+
+    [Filterable]
+    public string Name { get; set; }
+
+    [RangeFilter(LinkedRangeProperty = "AgeUntil")]
+    public decimal AgeFrom { get; set; }
+
+    public decimal AgeUntil { get; set; }
+    public string State { get; set; }
+}
+
+var repoQuery = BwoqQuery<PersonFilter>.Create()
+    .Where("2::silva")        // Search: Name [Filterable]
+    .Where("4::35=+")         // RangeFilter: AgeFrom = 35 (>=)
+    .Where("8::65=-")         // RangeFilter: AgeUntil = 65 (<=)
+    .OrderBy("64")
+    .ToRepositoryQuery();
+
+var builder = repoQuery.Build(repository);            // IQueryBuilder<T>
+var paged   = repoQuery.Build(repository, 1, 50);     // IQueryPaginatedBuilder<T>
+var sync    = repoQuery.BuildSync(repository);        // IQuerySyncBuilder<T>
+```
+
+> A execução permanece com o caller (await/ToList). Sem `[Filterable]`/`[RangeFilter]`,
+> o façade lança `BwoqCapabilityException` orientando a usar SQL ou LINQ.
+
+### Composição (loadComposition) e Disjunção (OR) — suportadas
+
+O façade explora a API pública da Specification:
+
+- **Composição**: projeção com navegação (`Select("3>1:2")`) liga `loadComposition = true`
+  (`[RelatedEntity]`) para carregar agregados por JOIN. Assim funciona:
+
+```csharp
+var repoQuery = BwoqQuery<Employee>.Create()
+    .Select("3>1:2")          // Id + Name do Employee + Logon do Credential
+    .Where("8::1&=")          // Active = true (Employee)
+    .ToRepositoryQuery();
+
+Assert.True(repoQuery.LoadComposition);        // eager loading via [RelatedEntity]
+// Execute: repoQuery.Build(repository).ToList() → Employee com Credential populado
+```
+
+- **Disjunção (OR)**: o GenericRepository publica `filterConjunction` — quando **toda** a
+  expressão for disjuntiva (critérios sem `&`), o façade mapeia `filterConjunction = false`
+  e a ORM combina as condições com `OR`:
+
+```csharp
+var repoQuery = BwoqQuery<PersonFilter>.Create()
+    .Where("2::silva")        // Name like "silva" OR
+    .Where("32::1=")          // Active = true   (OR)
+    .ToRepositoryQuery();
+
+Assert.False(repoQuery.FilterConjunction);     // OR
+```
+
+> Busca legada `Search(criteria, ...)` existe como otimização para um único critério like
+> sobre coluna `[Filterable]`. `BulkSearch(Object[] criterias, ...)` segue disponível na
+> ORM para disjunções por critérios independentes.
+
+### Limitações por design (BwoqCapabilityException)
+
+| Situação                              | Motivo                                     | Alternativa                     |
+| ------------------------------------- | ------------------------------------------ | ------------------------------- |
+| Filtro via navegação (`Where("2>1:2::...")`) | `loadComposition` carrega composição para leitura; filtrar por coluna do agregado exigiria JOIN explícito ([RelationalColumn] privada) | SQL (`ToSql`) ou LINQ (`Apply`) |
+| Mistura AND + OR na mesma expressão   | a ORM aplica um único `filterConjunction` a todas as condições | use só `&` ou só disjunção |
+| Comparadores estritos `>`/`<`         | ORM pública expõe só `>=`/`<=` via `[RangeFilter]` | SQL (`ToSql`) ou LINQ (`Apply`) |
+| Igualdade exata `=` em string não-chave | ORM busca por semelhança (LIKE)           | SQL (`ToSql`) ou LINQ (`Apply`) |
+| Booleano `false` / valor default (0, empty) | ORM ignora filtro com valor vazio          | SQL (`ToSql`) ou LINQ (`Apply`) |
+
+O token `>` permanece **exclusivamente navegação em composição** (nunca comparação);
+comparadores são `+` (maior), `-` (menor), `=+` (maior/igual), `=-` (menor/igual) e `=`
+(igualdade).
