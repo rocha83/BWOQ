@@ -29,30 +29,6 @@ BitWiseQuery<T>   --> Query engine (long methods + aliases Q, W, O, OD, G)
 BWQFilter<T>      --> Chainable builder, implements IQueryable<T> / IEnumerable<T>
 ```
 
-## 📋 BWOQ Syntax — Quick Reference
-
-| Operation | Syntax | Example | Description |
-| --------- | ------ | ------- | ----------- |
-| **Select (Q)** | `<mask>` | `Q("6")` | Projects Name (2) + City (4) = 6 |
-| **Where (W)** — like | `<mask>::<value>` | `W("2::silva")` | String similarity, case-insensitive |
-| Equality | `<mask>::<value>=` | `W("32::1=")` | `=`, with `&` = AND between columns (`32::1&=`) |
-| Greater than | `<mask>::<value>+` | `W("16::40+")` | `>` (in aggregation: Max) |
-| Less than | `<mask>::<value>-` | `W("16::30-")` | `<` (in aggregation: Min) |
-| Greater or equal | `<mask>::<value>=+` | `W("16::35=+")` | `>=` |
-| Less or equal | `<mask>::<value>=-` | `W("16::35=-")` | `<=` |
-| Internal comparison | `<mask>::<value><[&]<suffix>` | `W("6::10<-")` | Compares two columns (even mask) against each other; `<` switches to this mode, the trailing suffix sets the operator (`=`/`+`/`-`/`=+`/`=-`), `&` = AND between pairs |
-| **OrderBy (O)** | `<mask>` | `O("2")` | Ascending by Name (2) |
-| **OrderByDescending (OD)** | `<mask>` | `OD("64")` | Descending by CreditLimit (64) |
-| **GroupBy (G)** | `<grp>, <by>` | `G("4", "4")` | Groups by City (4); `grp` may carry an aggregation suffix |
-| Count | `<mask>*` | `G("4*", "4")` | `CountResult` per group |
-| Sum | `<mask>^` | `G("64^", "4")` | `SumOfCreditLimits` |
-| Average | `<mask>~` | `G("16~", "4")` | `AverageOfAges` |
-| Max | `<mask>+` | `G("64+", "4")` | `MaximumOfCreditLimits` |
-| Min | `<mask>-` | `G("64-", "4")` | `MinimumOfCreditLimits` |
-| Navigation | `<mask>>ordinal:mask` | `Q("3>1:2")` | Projects `Credential.Logon` (aggregate at ordinal 1) |
-
----
-
 ## 📌 Entity and Binary Table Example
 
 Each attribute receives a power of 2 in declaration order:
@@ -80,6 +56,57 @@ all columns        = 1+2+4+8+16+32+64 = 127
 
 > 💡 Boolean values can be entered as `1` (true) / `0` (false)
 > or literally `true` / `false`.
+
+---
+
+## 🔧 Available Methods
+
+### BitWiseQuery\<T\> (query engine)
+
+| Method                        | Alias              | Return                |
+| ----------------------------- | ------------------ | --------------------- |
+| `Query(string)`               | `Q(string)`        | `BWQFilter<T>` (builder) |
+| `Query(string, bool)`         | `Q(string, standAlone)` | `IQueryable` (projection) |
+| `Query(string, EnumSerialDataType)` | `Q(...)`       | `string` (JSON/CSV) |
+| `Where(string)`               | `W(string)`        | `IQueryable`      |
+| `Where(string, bool)`         | `W(string, hasSufix)` | `BWQFilter<T>` |
+| `Where(string, EnumSerialDataType)` | `W(...)`     | `string` (JSON/CSV) |
+| `OrderBy(string)`             | `O(string)`        | `IQueryable`   |
+| `OrderByDescending(string)`   | `OD(string)`       | `IQueryable`   |
+| `GroupBy(string, string)`     | `G(by, grp)`       | `IQueryable`   |
+
+### BWQFilter\<T\> (builder)
+
+| Method          | Return      |
+| --------------- | ----------- |
+| `W(string)`     | `BWQFilter<T>` |
+| `O(string)`     | `BWQFilter<T>` |
+| `OD(string)`    | `BWQFilter<T>` |
+| `G(string, string)` | `IQueryable` |
+
+---
+
+## 📋 BWOQ Syntax — Quick Reference
+
+| Operation | Syntax | Example | Description |
+| --------- | ------ | ------- | ----------- |
+| **Select (Q)** | `<mask>` | `Q("6")` | Projects Name (2) + City (4) = 6 |
+| **Where (W)** — like | `<mask>::<value>` | `W("2::silva")` | String similarity, case-insensitive |
+| Equality | `<mask>::<value>=` | `W("32::1=")` | `=`, with `&` = AND between columns (`32::1&=`) |
+| Greater than | `<mask>::<value>+` | `W("16::40+")` | `>` (in aggregation: Max) |
+| Less than | `<mask>::<value>-` | `W("16::30-")` | `<` (in aggregation: Min) |
+| Greater or equal | `<mask>::<value>=+` | `W("16::35=+")` | `>=` |
+| Less or equal | `<mask>::<value>=-` | `W("16::35=-")` | `<=` |
+| Internal comparison | `<mask>::<value><[&]<suffix>` | `W("6::10<-")` | Compares two columns (even mask) against each other; `<` switches to this mode, the trailing suffix sets the operator (`=`/`+`/`-`/`=+`/`=-`), `&` = AND between pairs |
+| **OrderBy (O)** | `<mask>` | `O("2")` | Ascending by Name (2) |
+| **OrderByDescending (OD)** | `<mask>` | `OD("64")` | Descending by CreditLimit (64) |
+| **GroupBy (G)** | `<grp>, <by>` | `G("4", "4")` | Groups by City (4); `grp` may carry an aggregation suffix |
+| Count | `<mask>*` | `G("4*", "4")` | `CountResult` per group |
+| Sum | `<mask>^` | `G("64^", "4")` | `SumOfCreditLimits` |
+| Average | `<mask>~` | `G("16~", "4")` | `AverageOfAges` |
+| Max | `<mask>+` | `G("64+", "4")` | `MaximumOfCreditLimits` |
+| Min | `<mask>-` | `G("64-", "4")` | `MinimumOfCreditLimits` |
+| Navigation | `<mask>>ordinal:mask` | `Q("3>1:2")` | Projects `Credential.Logon` (aggregate at ordinal 1) |
 
 ---
 
@@ -294,33 +321,6 @@ var csv  = bwq.Where("32::1&=", EnumSerialDataType.CSV);
 
 ---
 
-## 🔧 Available Methods
-
-### BitWiseQuery\<T\> (query engine)
-
-| Method                        | Alias              | Return                |
-| ----------------------------- | ------------------ | --------------------- |
-| `Query(string)`               | `Q(string)`        | `BWQFilter<T>` (builder) |
-| `Query(string, bool)`         | `Q(string, standAlone)` | `IQueryable` (projection) |
-| `Query(string, EnumSerialDataType)` | `Q(...)`       | `string` (JSON/CSV) |
-| `Where(string)`               | `W(string)`        | `IQueryable`      |
-| `Where(string, bool)`         | `W(string, hasSufix)` | `BWQFilter<T>` |
-| `Where(string, EnumSerialDataType)` | `W(...)`     | `string` (JSON/CSV) |
-| `OrderBy(string)`             | `O(string)`        | `IQueryable`   |
-| `OrderByDescending(string)`   | `OD(string)`       | `IQueryable`   |
-| `GroupBy(string, string)`     | `G(by, grp)`       | `IQueryable`   |
-
-### BWQFilter\<T\> (builder)
-
-| Method          | Return      |
-| --------------- | ----------- |
-| `W(string)`     | `BWQFilter<T>` |
-| `O(string)`     | `BWQFilter<T>` |
-| `OD(string)`    | `BWQFilter<T>` |
-| `G(string, string)` | `IQueryable` |
-
----
-
 ## 🧪 Tests
 
 The `Rochas.BWOQ.Test` package covers (**56 tests passed / 0 failures**):
@@ -376,30 +376,6 @@ BitWiseQuery<T>   --> Motor de consulta (métodos longos + aliases Q, W, O, OD, 
 BWQFilter<T>      --> Builder encadeável, implementa IQueryable<T> / IEnumerable<T>
 ```
 
-## 📋 Sintaxe BWOQ — Referência Rápida
-
-| Operação | Sintaxe | Exemplo | Descrição |
-| -------- | ------- | ------- | --------- |
-| **Select (Q)** | `<máscara>` | `Q("6")` | Projeta Name (2) + City (4) = 6 |
-| **Where (W)** — like | `<máscara>::<valor>` | `W("2::silva")` | Semelhança em strings, case-insensitive |
-| Igualdade | `<máscara>::<valor>=` | `W("32::1=")` | `=`, com `&` = conjunção AND entre colunas (`32::1&=`) |
-| Maior que | `<máscara>::<valor>+` | `W("16::40+")` | `>` (na agregação: Max) |
-| Menor que | `<máscara>::<valor>-` | `W("16::30-")` | `<` (na agregação: Min) |
-| Maior ou igual | `<máscara>::<valor>=+` | `W("16::35=+")` | `>=` |
-| Menor ou igual | `<máscara>::<valor>=-` | `W("16::35=-")` | `<=` |
-| Comparação interna | `<máscara>::<valor><[&]<sufixo>` | `W("6::10<-")` | Compara duas colunas (máscara par) entre si; o `<` ativa este modo, o sufixo final define o operador (`=`/`+`/`-`/`=+`/`=-`), `&` = AND entre os pares |
-| **OrderBy (O)** | `<máscara>` | `O("2")` | Ascendente por Name (2) |
-| **OrderByDescending (OD)** | `<máscara>` | `OD("64")` | Descendente por CreditLimit (64) |
-| **GroupBy (G)** | `<agr>, <by>` | `G("4", "4")` | Agrupa por City (4); `agr` pode ter sufixo de agregação |
-| Count | `<máscara>*` | `G("4*", "4")` | `CountResult` por grupo |
-| Sum | `<máscara>^` | `G("64^", "4")` | `SumOfCreditLimits` |
-| Média | `<máscara>~` | `G("16~", "4")` | `AverageOfAges` |
-| Max | `<máscara>+` | `G("64+", "4")` | `MaximumOfCreditLimits` |
-| Min | `<máscara>-` | `G("64-", "4")` | `MinimumOfCreditLimits` |
-| Navegação | `<máscara>>ordinal:máscara` | `Q("3>1:2")` | Projeta `Credential.Logon` (agregado no ordinal 1) |
-
----
-
 ## 📌 Exemplo de Entidade e Tabela Binária
 
 Cada atributo recebe uma potência de 2 na ordem de declaração:
@@ -427,6 +403,57 @@ todas as colunas   = 1+2+4+8+16+32+64 = 127
 
 > 💡 Valores booleano por binário podem ser informados como `1` (true) / `0` (false)
 > ou literalmente `true` / `false`.
+
+---
+
+## 🔧 Métodos Disponíveis
+
+### BitWiseQuery\<T\> (motor de consulta)
+
+| Método                        | Alias              | Retorno               |
+| ----------------------------- | ------------------ | --------------------- |
+| `Query(string)`               | `Q(string)`        | `BWQFilter<T>` (builder) |
+| `Query(string, bool)`         | `Q(string, standAlone)` | `IQueryable` (projeção) |
+| `Query(string, EnumSerialDataType)` | `Q(...)`       | `string` (JSON/CSV) |
+| `Where(string)`               | `W(string)`        | `IQueryable`      |
+| `Where(string, bool)`         | `W(string, hasSufix)` | `BWQFilter<T>` |
+| `Where(string, EnumSerialDataType)` | `W(...)`     | `string` (JSON/CSV) |
+| `OrderBy(string)`             | `O(string)`        | `IQueryable`   |
+| `OrderByDescending(string)`   | `OD(string)`       | `IQueryable`   |
+| `GroupBy(string, string)`     | `G(by, grp)`       | `IQueryable`   |
+
+### BWQFilter\<T\> (builder)
+
+| Método          | Retorno     |
+| --------------- | ----------- |
+| `W(string)`     | `BWQFilter<T>` |
+| `O(string)`     | `BWQFilter<T>` |
+| `OD(string)`    | `BWQFilter<T>` |
+| `G(string, string)` | `IQueryable` |
+
+---
+
+## 📋 Sintaxe BWOQ — Referência Rápida
+
+| Operação | Sintaxe | Exemplo | Descrição |
+| -------- | ------- | ------- | --------- |
+| **Select (Q)** | `<máscara>` | `Q("6")` | Projeta Name (2) + City (4) = 6 |
+| **Where (W)** — like | `<máscara>::<valor>` | `W("2::silva")` | Semelhança em strings, case-insensitive |
+| Igualdade | `<máscara>::<valor>=` | `W("32::1=")` | `=`, com `&` = conjunção AND entre colunas (`32::1&=`) |
+| Maior que | `<máscara>::<valor>+` | `W("16::40+")` | `>` (na agregação: Max) |
+| Menor que | `<máscara>::<valor>-` | `W("16::30-")` | `<` (na agregação: Min) |
+| Maior ou igual | `<máscara>::<valor>=+` | `W("16::35=+")` | `>=` |
+| Menor ou igual | `<máscara>::<valor>=-` | `W("16::35=-")` | `<=` |
+| Comparação interna | `<máscara>::<valor><[&]<sufixo>` | `W("6::10<-")` | Compara duas colunas (máscara par) entre si; o `<` ativa este modo, o sufixo final define o operador (`=`/`+`/`-`/`=+`/`=-`), `&` = AND entre os pares |
+| **OrderBy (O)** | `<máscara>` | `O("2")` | Ascendente por Name (2) |
+| **OrderByDescending (OD)** | `<máscara>` | `OD("64")` | Descendente por CreditLimit (64) |
+| **GroupBy (G)** | `<agr>, <by>` | `G("4", "4")` | Agrupa por City (4); `agr` pode ter sufixo de agregação |
+| Count | `<máscara>*` | `G("4*", "4")` | `CountResult` por grupo |
+| Sum | `<máscara>^` | `G("64^", "4")` | `SumOfCreditLimits` |
+| Média | `<máscara>~` | `G("16~", "4")` | `AverageOfAges` |
+| Max | `<máscara>+` | `G("64+", "4")` | `MaximumOfCreditLimits` |
+| Min | `<máscara>-` | `G("64-", "4")` | `MinimumOfCreditLimits` |
+| Navegação | `<máscara>>ordinal:máscara` | `Q("3>1:2")` | Projeta `Credential.Logon` (agregado no ordinal 1) |
 
 ---
 
@@ -641,33 +668,6 @@ var csv  = bwq.Where("32::1&=", EnumSerialDataType.CSV);
 
 ---
 
-## 🔧 Métodos Disponíveis
-
-### BitWiseQuery\<T\> (motor de consulta)
-
-| Método                        | Alias              | Retorno               |
-| ----------------------------- | ------------------ | --------------------- |
-| `Query(string)`               | `Q(string)`        | `BWQFilter<T>` (builder) |
-| `Query(string, bool)`         | `Q(string, standAlone)` | `IQueryable` (projeção) |
-| `Query(string, EnumSerialDataType)` | `Q(...)`       | `string` (JSON/CSV) |
-| `Where(string)`               | `W(string)`        | `IQueryable`      |
-| `Where(string, bool)`         | `W(string, hasSufix)` | `BWQFilter<T>` |
-| `Where(string, EnumSerialDataType)` | `W(...)`     | `string` (JSON/CSV) |
-| `OrderBy(string)`             | `O(string)`        | `IQueryable`   |
-| `OrderByDescending(string)`   | `OD(string)`       | `IQueryable`   |
-| `GroupBy(string, string)`     | `G(by, grp)`       | `IQueryable`   |
-
-### BWQFilter\<T\> (builder)
-
-| Método          | Retorno     |
-| --------------- | ----------- |
-| `W(string)`     | `BWQFilter<T>` |
-| `O(string)`     | `BWQFilter<T>` |
-| `OD(string)`    | `BWQFilter<T>` |
-| `G(string, string)` | `IQueryable` |
-
----
-
 ## 🧪 Testes
 
 O pacote `Rochas.BWOQ.Test` cobre (**56 testes aprovados / 0 falhas**):
@@ -722,6 +722,33 @@ dotnet add package Rochas.BWOQ
 BitWiseQuery<T>   --> Motor de consulta (métodos largos + alias Q, W, O, OD, G)
 BWQFilter<T>      --> Constructor encadenable, implementa IQueryable<T> / IEnumerable<T>
 ```
+
+## 🔧 Métodos Disponibles
+
+### BitWiseQuery\<T\> (motor de consulta)
+
+| Método                        | Alias              | Retorno               |
+| ----------------------------- | ------------------ | --------------------- |
+| `Query(string)`               | `Q(string)`        | `BWQFilter<T>` (constructor) |
+| `Query(string, bool)`         | `Q(string, standAlone)` | `IQueryable` (proyección) |
+| `Query(string, EnumSerialDataType)` | `Q(...)`       | `string` (JSON/CSV) |
+| `Where(string)`               | `W(string)`        | `IQueryable`      |
+| `Where(string, bool)`         | `W(string, hasSufix)` | `BWQFilter<T>` |
+| `Where(string, EnumSerialDataType)` | `W(...)`     | `string` (JSON/CSV) |
+| `OrderBy(string)`             | `O(string)`        | `IQueryable`   |
+| `OrderByDescending(string)`   | `OD(string)`       | `IQueryable`   |
+| `GroupBy(string, string)`     | `G(by, grp)`       | `IQueryable`   |
+
+### BWQFilter\<T\> (constructor)
+
+| Método          | Retorno     |
+| --------------- | ----------- |
+| `W(string)`     | `BWQFilter<T>` |
+| `O(string)`     | `BWQFilter<T>` |
+| `OD(string)`    | `BWQFilter<T>` |
+| `G(string, string)` | `IQueryable` |
+
+---
 
 ## 📋 Sintaxis BWOQ — Referencia Rápida
 
@@ -988,33 +1015,6 @@ var csv  = bwq.Where("32::1&=", EnumSerialDataType.CSV);
 
 ---
 
-## 🔧 Métodos Disponibles
-
-### BitWiseQuery\<T\> (motor de consulta)
-
-| Método                        | Alias              | Retorno               |
-| ----------------------------- | ------------------ | --------------------- |
-| `Query(string)`               | `Q(string)`        | `BWQFilter<T>` (constructor) |
-| `Query(string, bool)`         | `Q(string, standAlone)` | `IQueryable` (proyección) |
-| `Query(string, EnumSerialDataType)` | `Q(...)`       | `string` (JSON/CSV) |
-| `Where(string)`               | `W(string)`        | `IQueryable`      |
-| `Where(string, bool)`         | `W(string, hasSufix)` | `BWQFilter<T>` |
-| `Where(string, EnumSerialDataType)` | `W(...)`     | `string` (JSON/CSV) |
-| `OrderBy(string)`             | `O(string)`        | `IQueryable`   |
-| `OrderByDescending(string)`   | `OD(string)`       | `IQueryable`   |
-| `GroupBy(string, string)`     | `G(by, grp)`       | `IQueryable`   |
-
-### BWQFilter\<T\> (constructor)
-
-| Método          | Retorno     |
-| --------------- | ----------- |
-| `W(string)`     | `BWQFilter<T>` |
-| `O(string)`     | `BWQFilter<T>` |
-| `OD(string)`    | `BWQFilter<T>` |
-| `G(string, string)` | `IQueryable` |
-
----
-
 ## 🧪 Pruebas
 
 El paquete `Rochas.BWOQ.Test` cubre (**56 pruebas aprobadas / 0 fallos**):
@@ -1069,6 +1069,33 @@ dotnet add package Rochas.BWOQ
 BitWiseQuery<T>   --> Moteur de requête (méthodes longues + alias Q, W, O, OD, G)
 BWQFilter<T>      --> Constructeur chaînable, implémente IQueryable<T> / IEnumerable<T>
 ```
+
+## 🔧 Méthodes Disponibles
+
+### BitWiseQuery\<T\> (moteur de requête)
+
+| Méthode                        | Alias              | Retour               |
+| ----------------------------- | ------------------ | -------------------- |
+| `Query(string)`               | `Q(string)`        | `BWQFilter<T>` (constructeur) |
+| `Query(string, bool)`         | `Q(string, standAlone)` | `IQueryable` (projection) |
+| `Query(string, EnumSerialDataType)` | `Q(...)`       | `string` (JSON/CSV) |
+| `Where(string)`               | `W(string)`        | `IQueryable`      |
+| `Where(string, bool)`         | `W(string, hasSufix)` | `BWQFilter<T>` |
+| `Where(string, EnumSerialDataType)` | `W(...)`     | `string` (JSON/CSV) |
+| `OrderBy(string)`             | `O(string)`        | `IQueryable`   |
+| `OrderByDescending(string)`   | `OD(string)`       | `IQueryable`   |
+| `GroupBy(string, string)`     | `G(by, grp)`       | `IQueryable`   |
+
+### BWQFilter\<T\> (constructeur)
+
+| Méthode          | Retour     |
+| --------------- | ---------- |
+| `W(string)`     | `BWQFilter<T>` |
+| `O(string)`     | `BWQFilter<T>` |
+| `OD(string)`    | `BWQFilter<T>` |
+| `G(string, string)` | `IQueryable` |
+
+---
 
 ## 📋 Syntaxe BWOQ — Référence Rapide
 
@@ -1335,33 +1362,6 @@ var csv  = bwq.Where("32::1&=", EnumSerialDataType.CSV);
 
 ---
 
-## 🔧 Méthodes Disponibles
-
-### BitWiseQuery\<T\> (moteur de requête)
-
-| Méthode                        | Alias              | Retour               |
-| ----------------------------- | ------------------ | -------------------- |
-| `Query(string)`               | `Q(string)`        | `BWQFilter<T>` (constructeur) |
-| `Query(string, bool)`         | `Q(string, standAlone)` | `IQueryable` (projection) |
-| `Query(string, EnumSerialDataType)` | `Q(...)`       | `string` (JSON/CSV) |
-| `Where(string)`               | `W(string)`        | `IQueryable`      |
-| `Where(string, bool)`         | `W(string, hasSufix)` | `BWQFilter<T>` |
-| `Where(string, EnumSerialDataType)` | `W(...)`     | `string` (JSON/CSV) |
-| `OrderBy(string)`             | `O(string)`        | `IQueryable`   |
-| `OrderByDescending(string)`   | `OD(string)`       | `IQueryable`   |
-| `GroupBy(string, string)`     | `G(by, grp)`       | `IQueryable`   |
-
-### BWQFilter\<T\> (constructeur)
-
-| Méthode          | Retour     |
-| --------------- | ---------- |
-| `W(string)`     | `BWQFilter<T>` |
-| `O(string)`     | `BWQFilter<T>` |
-| `OD(string)`    | `BWQFilter<T>` |
-| `G(string, string)` | `IQueryable` |
-
----
-
 ## 🧪 Tests
 
 Le paquet `Rochas.BWOQ.Test` couvre (**56 tests réussis / 0 échecs**) :
@@ -1417,6 +1417,33 @@ dotnet add package Rochas.BWOQ
 BitWiseQuery<T>   --> Abfragemotor (lange Methoden + Aliase Q, W, O, OD, G)
 BWQFilter<T>      --> Kettbarer Builder, implementiert IQueryable<T> / IEnumerable<T>
 ```
+
+## 🔧 Verfügbare Methoden
+
+### BitWiseQuery\<T\> (Abfragemotor)
+
+| Methode                       | Alias              | Rückgabe              |
+| ----------------------------- | ------------------ | --------------------- |
+| `Query(string)`               | `Q(string)`        | `BWQFilter<T>` (Builder) |
+| `Query(string, bool)`         | `Q(string, standAlone)` | `IQueryable` (Projektion) |
+| `Query(string, EnumSerialDataType)` | `Q(...)`       | `string` (JSON/CSV) |
+| `Where(string)`               | `W(string)`        | `IQueryable`      |
+| `Where(string, bool)`         | `W(string, hasSufix)` | `BWQFilter<T>` |
+| `Where(string, EnumSerialDataType)` | `W(...)`     | `string` (JSON/CSV) |
+| `OrderBy(string)`             | `O(string)`        | `IQueryable`   |
+| `OrderByDescending(string)`   | `OD(string)`       | `IQueryable`   |
+| `GroupBy(string, string)`     | `G(by, grp)`       | `IQueryable`   |
+
+### BWQFilter\<T\> (Builder)
+
+| Methode         | Rückgabe   |
+| --------------- | ---------- |
+| `W(string)`     | `BWQFilter<T>` |
+| `O(string)`     | `BWQFilter<T>` |
+| `OD(string)`    | `BWQFilter<T>` |
+| `G(string, string)` | `IQueryable` |
+
+---
 
 ## 📋 BWOQ-Syntax — Schnellreferenz
 
@@ -1680,33 +1707,6 @@ var csv  = bwq.Where("32::1&=", EnumSerialDataType.CSV);
 | `-`            | `16::30-`        | Kleiner als (bei Aggregation: Min)   |
 | `=+`           | `16::35=+`       | Größer oder gleich                   |
 | `=-`           | `16::35=-`       | Kleiner oder gleich                  |
-
----
-
-## 🔧 Verfügbare Methoden
-
-### BitWiseQuery\<T\> (Abfragemotor)
-
-| Methode                       | Alias              | Rückgabe              |
-| ----------------------------- | ------------------ | --------------------- |
-| `Query(string)`               | `Q(string)`        | `BWQFilter<T>` (Builder) |
-| `Query(string, bool)`         | `Q(string, standAlone)` | `IQueryable` (Projektion) |
-| `Query(string, EnumSerialDataType)` | `Q(...)`       | `string` (JSON/CSV) |
-| `Where(string)`               | `W(string)`        | `IQueryable`      |
-| `Where(string, bool)`         | `W(string, hasSufix)` | `BWQFilter<T>` |
-| `Where(string, EnumSerialDataType)` | `W(...)`     | `string` (JSON/CSV) |
-| `OrderBy(string)`             | `O(string)`        | `IQueryable`   |
-| `OrderByDescending(string)`   | `OD(string)`       | `IQueryable`   |
-| `GroupBy(string, string)`     | `G(by, grp)`       | `IQueryable`   |
-
-### BWQFilter\<T\> (Builder)
-
-| Methode         | Rückgabe   |
-| --------------- | ---------- |
-| `W(string)`     | `BWQFilter<T>` |
-| `O(string)`     | `BWQFilter<T>` |
-| `OD(string)`    | `BWQFilter<T>` |
-| `G(string, string)` | `IQueryable` |
 
 ---
 
