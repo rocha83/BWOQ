@@ -29,6 +29,30 @@ BitWiseQuery<T>   --> Query engine (long methods + aliases Q, W, O, OD, G)
 BWQFilter<T>      --> Chainable builder, implements IQueryable<T> / IEnumerable<T>
 ```
 
+## 📋 BWOQ Syntax — Quick Reference
+
+| Operation | Syntax | Example | Description |
+| --------- | ------ | ------- | ----------- |
+| **Select (Q)** | `<mask>` | `Q("6")` | Projects Name (2) + City (4) = 6 |
+| **Where (W)** — like | `<mask>::<value>` | `W("2::silva")` | String similarity, case-insensitive |
+| Equality | `<mask>::<value>=` | `W("32::1=")` | `=`, with `&` = AND between columns (`32::1&=`) |
+| Greater than | `<mask>::<value>+` | `W("16::40+")` | `>` (in aggregation: Max) |
+| Less than | `<mask>::<value>-` | `W("16::30-")` | `<` (in aggregation: Min) |
+| Greater or equal | `<mask>::<value>=+` | `W("16::35=+")` | `>=` |
+| Less or equal | `<mask>::<value>=-` | `W("16::35=-")` | `<=` |
+| Internal comparison | `<mask>::<value><[&]<suffix>` | `W("6::10<-")` | Compares two columns (even mask) against each other; `<` switches to this mode, the trailing suffix sets the operator (`=`/`+`/`-`/`=+`/`=-`), `&` = AND between pairs |
+| **OrderBy (O)** | `<mask>` | `O("2")` | Ascending by Name (2) |
+| **OrderByDescending (OD)** | `<mask>` | `OD("64")` | Descending by CreditLimit (64) |
+| **GroupBy (G)** | `<grp>, <by>` | `G("4", "4")` | Groups by City (4); `grp` may carry an aggregation suffix |
+| Count | `<mask>*` | `G("4*", "4")` | `CountResult` per group |
+| Sum | `<mask>^` | `G("64^", "4")` | `SumOfCreditLimits` |
+| Average | `<mask>~` | `G("16~", "4")` | `AverageOfAges` |
+| Max | `<mask>+` | `G("64+", "4")` | `MaximumOfCreditLimits` |
+| Min | `<mask>-` | `G("64-", "4")` | `MinimumOfCreditLimits` |
+| Navigation | `<mask>>ordinal:mask` | `Q("3>1:2")` | Projects `Credential.Logon` (aggregate at ordinal 1) |
+
+---
+
 ## 📌 Entity and Binary Table Example
 
 Each attribute receives a power of 2 in declaration order:
@@ -351,6 +375,30 @@ dotnet add package Rochas.BWOQ
 BitWiseQuery<T>   --> Motor de consulta (métodos longos + aliases Q, W, O, OD, G)
 BWQFilter<T>      --> Builder encadeável, implementa IQueryable<T> / IEnumerable<T>
 ```
+
+## 📋 Sintaxe BWOQ — Referência Rápida
+
+| Operação | Sintaxe | Exemplo | Descrição |
+| -------- | ------- | ------- | --------- |
+| **Select (Q)** | `<máscara>` | `Q("6")` | Projeta Name (2) + City (4) = 6 |
+| **Where (W)** — like | `<máscara>::<valor>` | `W("2::silva")` | Semelhança em strings, case-insensitive |
+| Igualdade | `<máscara>::<valor>=` | `W("32::1=")` | `=`, com `&` = conjunção AND entre colunas (`32::1&=`) |
+| Maior que | `<máscara>::<valor>+` | `W("16::40+")` | `>` (na agregação: Max) |
+| Menor que | `<máscara>::<valor>-` | `W("16::30-")` | `<` (na agregação: Min) |
+| Maior ou igual | `<máscara>::<valor>=+` | `W("16::35=+")` | `>=` |
+| Menor ou igual | `<máscara>::<valor>=-` | `W("16::35=-")` | `<=` |
+| Comparação interna | `<máscara>::<valor><[&]<sufixo>` | `W("6::10<-")` | Compara duas colunas (máscara par) entre si; o `<` ativa este modo, o sufixo final define o operador (`=`/`+`/`-`/`=+`/`=-`), `&` = AND entre os pares |
+| **OrderBy (O)** | `<máscara>` | `O("2")` | Ascendente por Name (2) |
+| **OrderByDescending (OD)** | `<máscara>` | `OD("64")` | Descendente por CreditLimit (64) |
+| **GroupBy (G)** | `<agr>, <by>` | `G("4", "4")` | Agrupa por City (4); `agr` pode ter sufixo de agregação |
+| Count | `<máscara>*` | `G("4*", "4")` | `CountResult` por grupo |
+| Sum | `<máscara>^` | `G("64^", "4")` | `SumOfCreditLimits` |
+| Média | `<máscara>~` | `G("16~", "4")` | `AverageOfAges` |
+| Max | `<máscara>+` | `G("64+", "4")` | `MaximumOfCreditLimits` |
+| Min | `<máscara>-` | `G("64-", "4")` | `MinimumOfCreditLimits` |
+| Navegação | `<máscara>>ordinal:máscara` | `Q("3>1:2")` | Projeta `Credential.Logon` (agregado no ordinal 1) |
+
+---
 
 ## 📌 Exemplo de Entidade e Tabela Binária
 
@@ -675,6 +723,30 @@ BitWiseQuery<T>   --> Motor de consulta (métodos largos + alias Q, W, O, OD, G)
 BWQFilter<T>      --> Constructor encadenable, implementa IQueryable<T> / IEnumerable<T>
 ```
 
+## 📋 Sintaxis BWOQ — Referencia Rápida
+
+| Operación | Sintaxis | Ejemplo | Descripción |
+| --------- | -------- | ------- | ----------- |
+| **Select (Q)** | `<máscara>` | `Q("6")` | Proyecta Name (2) + City (4) = 6 |
+| **Where (W)** — like | `<máscara>::<valor>` | `W("2::silva")` | Similitud en strings, insensible a mayúsculas |
+| Igualdad | `<máscara>::<valor>=` | `W("32::1=")` | `=`, con `&` = conjunción AND entre columnas (`32::1&=`) |
+| Mayor que | `<máscara>::<valor>+` | `W("16::40+")` | `>` (en la agregación: Max) |
+| Menor que | `<máscara>::<valor>-` | `W("16::30-")` | `<` (en la agregación: Min) |
+| Mayor o igual | `<máscara>::<valor>=+` | `W("16::35=+")` | `>=` |
+| Menor o igual | `<máscara>::<valor>=-` | `W("16::35=-")` | `<=` |
+| Comparación interna | `<máscara>::<valor><[&]<sufijo>` | `W("6::10<-")` | Compara dos columnas (máscara par) entre sí; el `<` activa este modo, el sufijo final define el operador (`=`/`+`/`-`/`=+`/`=-`), `&` = AND entre los pares |
+| **OrderBy (O)** | `<máscara>` | `O("2")` | Ascendente por Name (2) |
+| **OrderByDescending (OD)** | `<máscara>` | `OD("64")` | Descendente por CreditLimit (64) |
+| **GroupBy (G)** | `<agr>, <by>` | `G("4", "4")` | Agrupa por City (4); `agr` puede llevar sufijo de agregación |
+| Count | `<máscara>*` | `G("4*", "4")` | `CountResult` por grupo |
+| Sum | `<máscara>^` | `G("64^", "4")` | `SumOfCreditLimits` |
+| Promedio | `<máscara>~` | `G("16~", "4")` | `AverageOfAges` |
+| Max | `<máscara>+` | `G("64+", "4")` | `MaximumOfCreditLimits` |
+| Min | `<máscara>-` | `G("64-", "4")` | `MinimumOfCreditLimits` |
+| Navegación | `<máscara>>ordinal:máscara` | `Q("3>1:2")` | Proyecta `Credential.Logon` (agregado en ordinal 1) |
+
+---
+
 ## 📌 Ejemplo de Entidad y Tabla Binaria
 
 Cada atributo recibe una potencia de 2 en el orden de declaración:
@@ -997,6 +1069,30 @@ dotnet add package Rochas.BWOQ
 BitWiseQuery<T>   --> Moteur de requête (méthodes longues + alias Q, W, O, OD, G)
 BWQFilter<T>      --> Constructeur chaînable, implémente IQueryable<T> / IEnumerable<T>
 ```
+
+## 📋 Syntaxe BWOQ — Référence Rapide
+
+| Opération | Syntaxe | Exemple | Description |
+| --------- | ------- | ------- | ----------- |
+| **Select (Q)** | `<masque>` | `Q("6")` | Projette Name (2) + City (4) = 6 |
+| **Where (W)** — like | `<masque>::<valeur>` | `W("2::silva")` | Similarité sur les chaînes, insensible à la casse |
+| Égalité | `<masque>::<valeur>=` | `W("32::1=")` | `=`, avec `&` = conjonction AND entre colonnes (`32::1&=`) |
+| Supérieur à | `<masque>::<valeur>+` | `W("16::40+")` | `>` (en agrégation : Max) |
+| Inférieur à | `<masque>::<valeur>-` | `W("16::30-")` | `<` (en agrégation : Min) |
+| Supérieur ou égal | `<masque>::<valeur>=+` | `W("16::35=+")` | `>=` |
+| Inférieur ou égal | `<masque>::<valeur>=-` | `W("16::35=-")` | `<=` |
+| Comparaison interne | `<masque>::<valeur><[&]<suffixe>` | `W("6::10<-")` | Compare deux colonnes (masque pair) entre elles ; le `<` active ce mode, le suffixe final définit l'opérateur (`=`/`+`/`-`/`=+`/`=-`), `&` = AND entre les paires |
+| **OrderBy (O)** | `<masque>` | `O("2")` | Ascendant par Name (2) |
+| **OrderByDescending (OD)** | `<masque>` | `OD("64")` | Descendant par CreditLimit (64) |
+| **GroupBy (G)** | `<agr>, <by>` | `G("4", "4")` | Regroupe par City (4) ; `agr` peut porter un suffixe d'agrégation |
+| Count | `<masque>*` | `G("4*", "4")` | `CountResult` par groupe |
+| Sum | `<masque>^` | `G("64^", "4")` | `SumOfCreditLimits` |
+| Moyenne | `<masque>~` | `G("16~", "4")` | `AverageOfAges` |
+| Max | `<masque>+` | `G("64+", "4")` | `MaximumOfCreditLimits` |
+| Min | `<masque>-` | `G("64-", "4")` | `MinimumOfCreditLimits` |
+| Navigation | `<masque>>ordinal:masque` | `Q("3>1:2")` | Projette `Credential.Logon` (agrégé à l'ordinal 1) |
+
+---
 
 ## 📌 Exemple d'Entité et Table Binaire
 
@@ -1321,6 +1417,30 @@ dotnet add package Rochas.BWOQ
 BitWiseQuery<T>   --> Abfragemotor (lange Methoden + Aliase Q, W, O, OD, G)
 BWQFilter<T>      --> Kettbarer Builder, implementiert IQueryable<T> / IEnumerable<T>
 ```
+
+## 📋 BWOQ-Syntax — Schnellreferenz
+
+| Operation | Syntax | Beispiel | Beschreibung |
+| --------- | ------ | -------- | ------------ |
+| **Select (Q)** | `<Maske>` | `Q("6")` | Projiziert Name (2) + City (4) = 6 |
+| **Where (W)** — like | `<Maske>::<Wert>` | `W("2::silva")` | Ähnlichkeit für Strings, ohne Groß-/Kleinschreibung |
+| Gleichheit | `<Maske>::<Wert>=` | `W("32::1=")` | `=`, mit `&` = UND-Verknüpfung zwischen Spalten (`32::1&=`) |
+| Größer als | `<Maske>::<Wert>+` | `W("16::40+")` | `>` (bei Aggregation: Max) |
+| Kleiner als | `<Maske>::<Wert>-` | `W("16::30-")` | `<` (bei Aggregation: Min) |
+| Größer oder gleich | `<Maske>::<Wert>=+` | `W("16::35=+")` | `>=` |
+| Kleiner oder gleich | `<Maske>::<Wert>=-` | `W("16::35=-")` | `<=` |
+| Interne Vergleiche | `<Maske>::<Wert><[&]<Suffix>` | `W("6::10<-")` | Vergleicht zwei Spalten (gerade Maske) miteinander; `<` aktiviert diesen Modus, das End-Suffix legt den Operator fest (`=`/`+`/`-`/`=+`/`=-`), `&` = AND zwischen den Paaren |
+| **OrderBy (O)** | `<Maske>` | `O("2")` | Aufsteigend nach Name (2) |
+| **OrderByDescending (OD)** | `<Maske>` | `OD("64")` | Absteigend nach CreditLimit (64) |
+| **GroupBy (G)** | `<agr>, <by>` | `G("4", "4")` | Gruppiert nach City (4); `agr` kann Aggregationssuffix tragen |
+| Count | `<Maske>*` | `G("4*", "4")` | `CountResult` pro Gruppe |
+| Sum | `<Maske>^` | `G("64^", "4")` | `SumOfCreditLimits` |
+| Durchschnitt | `<Maske>~` | `G("16~", "4")` | `AverageOfAges` |
+| Max | `<Maske>+` | `G("64+", "4")` | `MaximumOfCreditLimits` |
+| Min | `<Maske>-` | `G("64-", "4")` | `MinimumOfCreditLimits` |
+| Navigation | `<Maske>>Ordinal:Maske` | `Q("3>1:2")` | Projiziert `Credential.Logon` (Aggregat an Ordinalstelle 1) |
+
+---
 
 ## 📌 Entitäts- und Binärtabelle-Beispiel
 
